@@ -1111,6 +1111,36 @@ CREATE TABLE PortfolioShowcase (
 );
 
 -- ============================================
+-- EMAIL TEMPLATES
+-- ============================================
+
+CREATE TABLE EmailTemplate (
+    TemplateID INT PRIMARY KEY IDENTITY(1,1),
+    TemplateName NVARCHAR(255) NOT NULL UNIQUE,
+    TemplateType NVARCHAR(50) NOT NULL,
+    Subject NVARCHAR(500) NOT NULL,
+    HtmlBody NVARCHAR(MAX) NOT NULL,
+    PlaceholderVariables NVARCHAR(500),
+    IsActive BIT DEFAULT 1,
+    CreatedBy INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETUTCDATE(),
+    UpdatedBy INT,
+    UpdatedAt DATETIME DEFAULT GETUTCDATE(),
+    DeletedBy INT,
+    DeletedAt DATETIME,
+    IsDeleted BIT DEFAULT 0,
+    FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
+    CONSTRAINT CHK_EmailTemplate_TemplateType CHECK (TemplateType IN ('Invitation', 'Confirmation', 'Reminder', 'Notification', 'Receipt', 'Invoice', 'Other')),
+    CONSTRAINT CHK_EmailTemplate_IsDeleted CHECK (IsDeleted IN (0, 1)),
+    INDEX IDX_EmailTemplate_TemplateType (TemplateType),
+    INDEX IDX_EmailTemplate_IsActive (IsActive),
+    INDEX IDX_EmailTemplate_CreatedBy (CreatedBy),
+    INDEX IDX_EmailTemplate_IsDeleted (IsDeleted)
+);
+
+-- ============================================
 -- CREATE INDEXES
 -- ============================================
 

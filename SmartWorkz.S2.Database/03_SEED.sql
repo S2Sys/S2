@@ -1694,3 +1694,125 @@ PRINT 'Galleries created: 8 total (4 before + 4 after)';
 -- Verify PortfolioShowcase records
 SELECT 'PortfolioShowcase' AS TableName, COUNT(*) AS ActiveRecords FROM PortfolioShowcase WHERE IsDeleted = 0;
 
+-- ============================================
+-- SEED EMAIL TEMPLATES
+-- ============================================
+
+PRINT '=== Seeding Email Templates ===';
+
+DECLARE @TemplateAdminId INT = @AdminUserId;
+
+-- 1. Booking Confirmation Template
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Booking Confirmation',
+    @TemplateType = 'Confirmation',
+    @Subject = 'Your Booking Confirmation - {EventDate}',
+    @HtmlBody = '<html><body><h2>Booking Confirmed!</h2><p>Dear {ClientName},</p><p>Thank you for booking with us. Your photography session is confirmed for <strong>{EventDate}</strong> at <strong>{EventLocation}</strong>.</p><p><strong>Booking Details:</strong></p><ul><li>Package: {PackageName}</li><li>Total Amount: {TotalAmount}</li><li>Deposit Paid: {DepositAmount}</li></ul><p>Please bring any specific requirements or props you''d like to include.</p><p>Best regards,<br/>Studio S2 Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {EventDate}, {EventLocation}, {PackageName}, {TotalAmount}, {DepositAmount}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 2. Event Invitation Template
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Event Invitation',
+    @TemplateType = 'Invitation',
+    @Subject = 'You''re Invited! - {EventName} on {EventDate}',
+    @HtmlBody = '<html><body><h2>You Are Invited!</h2><p>Dear {ClientName},</p><p>We are thrilled to invite you to <strong>{EventName}</strong>.</p><p><strong>Event Details:</strong></p><ul><li>Date: {EventDate}</li><li>Time: {EventTime}</li><li>Location: {EventLocation}</li></ul><p>Our professional photographer will be capturing all the special moments. Please RSVP by {DeadlineDate}.</p><p>We look forward to seeing you there!</p><p>Best regards,<br/>Studio S2 Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {EventName}, {EventDate}, {EventTime}, {EventLocation}, {DeadlineDate}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 3. Gallery Ready Notification
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Gallery Ready Notification',
+    @TemplateType = 'Notification',
+    @Subject = 'Your Gallery is Ready! - {EventName}',
+    @HtmlBody = '<html><body><h2>Your Gallery is Ready!</h2><p>Dear {ClientName},</p><p>Great news! We have finished editing your photos from <strong>{EventName}</strong>.</p><p>Your gallery is now available for review with <strong>{TotalImages}</strong> professionally edited images.</p><p><strong>Access your gallery:</strong></p><p><a href="{GalleryLink}" style="background-color:#007bff; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">View Your Gallery</a></p><p>Please review the photos and provide any feedback within <strong>{ReviewDeadline}</strong> days.</p><p>Best regards,<br/>Studio S2 Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {EventName}, {TotalImages}, {GalleryLink}, {ReviewDeadline}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 4. Invoice Reminder Template
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Invoice Reminder',
+    @TemplateType = 'Reminder',
+    @Subject = 'Invoice Due Soon - {InvoiceNumber}',
+    @HtmlBody = '<html><body><h2>Invoice Payment Reminder</h2><p>Dear {ClientName},</p><p>This is a friendly reminder that your invoice is due on <strong>{DueDate}</strong>.</p><p><strong>Invoice Details:</strong></p><ul><li>Invoice Number: {InvoiceNumber}</li><li>Amount Due: {Amount}</li><li>Service: {ServiceDescription}</li></ul><p>Please arrange payment at your earliest convenience to avoid any service disruptions.</p><p>Thank you for your prompt attention.</p><p>Best regards,<br/>Studio S2 Accounts Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {DueDate}, {InvoiceNumber}, {Amount}, {ServiceDescription}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 5. Payment Received Receipt
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Payment Received',
+    @TemplateType = 'Receipt',
+    @Subject = 'Payment Received - Thank You!',
+    @HtmlBody = '<html><body><h2>Payment Received</h2><p>Dear {ClientName},</p><p>Thank you for your payment! We have successfully received your payment of <strong>{Amount}</strong>.</p><p><strong>Receipt Details:</strong></p><ul><li>Transaction ID: {TransactionID}</li><li>Invoice Number: {InvoiceNumber}</li><li>Date: {PaymentDate}</li><li>Payment Method: {PaymentMethod}</li></ul><p>Your account is now up to date. We appreciate your business!</p><p>Best regards,<br/>Studio S2 Accounts Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {Amount}, {TransactionID}, {InvoiceNumber}, {PaymentDate}, {PaymentMethod}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 6. Service Completion Notification
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Service Completion',
+    @TemplateType = 'Notification',
+    @Subject = 'Your Photography Service is Complete - {EventName}',
+    @HtmlBody = '<html><body><h2>Service Completed</h2><p>Dear {ClientName},</p><p>We are pleased to inform you that your photography service for <strong>{EventName}</strong> is now complete.</p><p><strong>What''s Next:</strong></p><ol><li>Your gallery will be available for review within <strong>{ReviewPeriod}</strong> business days</li><li>You will receive an email with the gallery link</li><li>You can provide feedback and request edits during the review period</li></ol><p>Thank you for choosing Studio S2 for your photography needs!</p><p>Best regards,<br/>Studio S2 Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {EventName}, {ReviewPeriod}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 7. Quotation Sent Template
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Quotation Sent',
+    @TemplateType = 'Notification',
+    @Subject = 'Your Quotation for {EventName} - {QuotationNumber}',
+    @HtmlBody = '<html><body><h2>Your Photography Quotation</h2><p>Dear {ClientName},</p><p>Thank you for your interest in Studio S2. We have prepared a detailed quotation for your event.</p><p><strong>Quotation Summary:</strong></p><ul><li>Quotation Number: {QuotationNumber}</li><li>Service: {EventName}</li><li>Event Date: {EventDate}</li><li>Total Amount: {TotalAmount}</li></ul><p>This quotation is valid until <strong>{ValidUntil}</strong>.</p><p>To proceed with booking, please reply to this email or call us at {PhoneNumber}.</p><p>We look forward to working with you!</p><p>Best regards,<br/>Studio S2 Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {QuotationNumber}, {EventName}, {EventDate}, {TotalAmount}, {ValidUntil}, {PhoneNumber}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 8. Package Inquiry Response
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Package Inquiry Response',
+    @TemplateType = 'Other',
+    @Subject = 'Your Inquiry About {PackageName}',
+    @HtmlBody = '<html><body><h2>Thank You for Your Inquiry</h2><p>Dear {ClientName},</p><p>Thank you for your interest in our <strong>{PackageName}</strong> package.</p><p><strong>Package Highlights:</strong></p><ul><li>Duration: {Duration}</li><li>Base Price: {Price}</li><li>Deliverables: {Deliverables}</li></ul><p>This package is ideal for {IdealFor}. We can customize it based on your specific requirements.</p><p>Would you like to schedule a consultation? Please let us know your preferred dates and times.</p><p>Best regards,<br/>Studio S2 Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {PackageName}, {Duration}, {Price}, {Deliverables}, {IdealFor}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 9. Event Reminder Template
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Event Reminder',
+    @TemplateType = 'Reminder',
+    @Subject = 'Reminder: Your Photography Session Tomorrow - {EventName}',
+    @HtmlBody = '<html><body><h2>Session Reminder</h2><p>Dear {ClientName},</p><p>This is a friendly reminder that your photography session is scheduled for <strong>tomorrow at {EventTime}</strong>.</p><p><strong>Session Details:</strong></p><ul><li>Event: {EventName}</li><li>Location: {EventLocation}</li><li>Duration: {Duration}</li></ul><p><strong>Please Remember to:</strong></p><ul><li>Arrive 15 minutes early</li><li>Bring any specific props or items you want included</li><li>Wear comfortable clothing suitable for the session</li></ul><p>We look forward to capturing your special moments!</p><p>Best regards,<br/>Studio S2 Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {EventName}, {EventTime}, {EventLocation}, {Duration}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 10. Thank You Note
+EXEC uspEmailTemplateUpsert
+    @Id = 0,
+    @TemplateName = 'Thank You Note',
+    @TemplateType = 'Other',
+    @Subject = 'Thank You for Choosing Studio S2 - {EventName}',
+    @HtmlBody = '<html><body><h2>Thank You!</h2><p>Dear {ClientName},</p><p>We wanted to take a moment to thank you for choosing Studio S2 for {EventName}.</p><p>It was a pleasure working with you, and we hope you enjoy your photographs for years to come.</p><p><strong>Don''t Forget:</strong></p><ul><li>Share your photos on social media and tag us!</li><li>Leave us a review - your feedback helps us improve</li><li>Refer a friend and receive a special discount on your next booking</li></ul><p>If you need any additional prints or copies of your photos, please don''t hesitate to contact us.</p><p>Best regards,<br/>Studio S2 Team</p></body></html>',
+    @PlaceholderVariables = '{ClientName}, {EventName}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+PRINT 'Email Templates seeded: 10 templates';
+
+-- Verify EmailTemplate records
+SELECT 'EmailTemplate' AS TableName, COUNT(*) AS ActiveRecords FROM EmailTemplate WHERE IsDeleted = 0;

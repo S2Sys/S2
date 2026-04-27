@@ -3386,3 +3386,135 @@ BEGIN
     SELECT @ShowcaseID AS ShowcaseID;
 END;
 
+-- ============================================
+-- EMAIL TEMPLATE PROCEDURES
+-- ============================================
+
+CREATE PROCEDURE uspEmailTemplateUpsert
+    @Id INT = 0,
+    @TemplateName NVARCHAR(255),
+    @TemplateType NVARCHAR(50),
+    @Subject NVARCHAR(500),
+    @HtmlBody NVARCHAR(MAX),
+    @PlaceholderVariables NVARCHAR(500) = NULL,
+    @IsActive BIT = 1,
+    @CreatedBy INT = NULL,
+    @UpdatedBy INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @Id = 0
+    BEGIN
+        -- INSERT
+        INSERT INTO EmailTemplate (TemplateName, TemplateType, Subject, HtmlBody, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt)
+        VALUES (@TemplateName, @TemplateType, @Subject, @HtmlBody, @PlaceholderVariables, @IsActive, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE());
+
+        SELECT CAST(@@IDENTITY AS INT) AS TemplateID;
+    END
+    ELSE
+    BEGIN
+        -- UPDATE
+        UPDATE EmailTemplate
+        SET TemplateName = @TemplateName, TemplateType = @TemplateType, Subject = @Subject, HtmlBody = @HtmlBody,
+            PlaceholderVariables = @PlaceholderVariables, IsActive = @IsActive, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
+        WHERE TemplateID = @Id AND IsDeleted = 0;
+
+        SELECT @Id AS TemplateID;
+    END
+END;
+
+CREATE PROCEDURE uspEmailTemplateRead
+    @TemplateID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TemplateID, TemplateName, TemplateType, Subject, HtmlBody, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    FROM EmailTemplate
+    WHERE TemplateID = @TemplateID AND IsDeleted = 0;
+END;
+
+CREATE PROCEDURE uspEmailTemplateReadAll
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TemplateID, TemplateName, TemplateType, Subject, HtmlBody, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+    FROM EmailTemplate
+    WHERE IsDeleted = 0
+    ORDER BY CreatedAt DESC;
+END;
+
+CREATE PROCEDURE uspEmailTemplateReadPaged
+    @PageNumber INT = 1,
+    @PageSize INT = 10,
+    @TemplateType NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Offset INT = (@PageNumber - 1) * @PageSize;
+
+    -- Get paged results
+    SELECT TemplateID, TemplateName, TemplateType, Subject, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedAt
+    FROM EmailTemplate
+    WHERE IsDeleted = 0 AND (@TemplateType IS NULL OR TemplateType = @TemplateType)
+    ORDER BY CreatedAt DESC
+    OFFSET @Offset ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+
+    -- Get total count
+    SELECT COUNT(*) AS TotalCount
+    FROM EmailTemplate
+    WHERE IsDeleted = 0 AND (@TemplateType IS NULL OR TemplateType = @TemplateType);
+END;
+
+CREATE PROCEDURE uspEmailTemplateGetByType
+    @TemplateType NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TemplateID, TemplateName, TemplateType, Subject, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedAt
+    FROM EmailTemplate
+    WHERE TemplateType = @TemplateType AND IsDeleted = 0
+    ORDER BY TemplateName;
+END;
+
+CREATE PROCEDURE uspEmailTemplateGetActive
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TemplateID, TemplateName, TemplateType, Subject, HtmlBody, PlaceholderVariables, CreatedBy, CreatedAt, UpdatedAt
+    FROM EmailTemplate
+    WHERE IsActive = 1 AND IsDeleted = 0
+    ORDER BY TemplateName;
+END;
+
+CREATE PROCEDURE uspEmailTemplateGetByName
+    @TemplateName NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TemplateID, TemplateName, TemplateType, Subject, HtmlBody, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+    FROM EmailTemplate
+    WHERE TemplateName = @TemplateName AND IsDeleted = 0;
+END;
+
+CREATE PROCEDURE uspEmailTemplateDelete
+    @TemplateID INT,
+    @DeletedBy INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE EmailTemplate
+    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy, UpdatedAt = GETUTCDATE()
+    WHERE TemplateID = @TemplateID AND IsDeleted = 0;
+
+    SELECT @TemplateID AS TemplateID;
+END;
+
