@@ -1141,6 +1141,35 @@ CREATE TABLE EmailTemplate (
 );
 
 -- ============================================
+-- CONTRACT TEMPLATES (Gap #18)
+-- ============================================
+
+CREATE TABLE ContractTemplate (
+    ContractTemplateID INT PRIMARY KEY IDENTITY(1,1),
+    ContractName NVARCHAR(255) NOT NULL UNIQUE,
+    ServiceCategory NVARCHAR(100),
+    TemplateText NVARCHAR(MAX) NOT NULL,
+    PlaceholderVariables NVARCHAR(500),
+    IsActive BIT DEFAULT 1,
+    CreatedBy INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETUTCDATE(),
+    UpdatedBy INT,
+    UpdatedAt DATETIME DEFAULT GETUTCDATE(),
+    DeletedBy INT,
+    DeletedAt DATETIME,
+    IsDeleted BIT DEFAULT 0,
+    FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
+    CHECK (ServiceCategory IN ('Wedding', 'Portrait', 'Events', 'Video', 'Corporate', 'Other', NULL)),
+    CHECK (IsDeleted IN (0, 1)),
+    INDEX IDX_ContractTemplate_ServiceCategory (ServiceCategory),
+    INDEX IDX_ContractTemplate_IsActive (IsActive),
+    INDEX IDX_ContractTemplate_CreatedBy (CreatedBy),
+    INDEX IDX_ContractTemplate_IsDeleted (IsDeleted)
+);
+
+-- ============================================
 -- CREATE INDEXES
 -- ============================================
 
@@ -1221,3 +1250,5 @@ CREATE INDEX IDX_BookingLog_IsDeleted ON BookingLog(IsDeleted);
 CREATE INDEX IDX_Invoice_IsDeleted ON Invoice(IsDeleted);
 CREATE INDEX IDX_SEOMetadata_IsDeleted ON SEOMetadata(IsDeleted);
 CREATE INDEX IDX_PortfolioShowcase_IsDeleted ON PortfolioShowcase(IsDeleted);
+CREATE INDEX IDX_EmailTemplate_IsDeleted ON EmailTemplate(IsDeleted);
+CREATE INDEX IDX_ContractTemplate_IsDeleted ON ContractTemplate(IsDeleted);

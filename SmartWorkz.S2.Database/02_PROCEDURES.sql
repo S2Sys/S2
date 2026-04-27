@@ -3518,3 +3518,138 @@ BEGIN
     SELECT @TemplateID AS TemplateID;
 END;
 
+-- ============================================
+-- CONTRACT TEMPLATE PROCEDURES (Gap #18)
+-- ============================================
+
+CREATE PROCEDURE uspContractTemplateUpsert
+    @Id INT = 0,
+    @ContractName NVARCHAR(255),
+    @ServiceCategory NVARCHAR(100) = NULL,
+    @TemplateText NVARCHAR(MAX),
+    @PlaceholderVariables NVARCHAR(500) = NULL,
+    @IsActive BIT = 1,
+    @CreatedBy INT = NULL,
+    @UpdatedBy INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @Id = 0
+        INSERT INTO ContractTemplate (ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt)
+        VALUES (@ContractName, @ServiceCategory, @TemplateText, @PlaceholderVariables, @IsActive, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE());
+    ELSE
+        UPDATE ContractTemplate
+        SET ContractName = @ContractName, ServiceCategory = @ServiceCategory, TemplateText = @TemplateText,
+            PlaceholderVariables = @PlaceholderVariables, IsActive = @IsActive, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
+        WHERE ContractTemplateID = @Id;
+
+    SELECT @@IDENTITY AS ContractTemplateID;
+END;
+
+CREATE PROCEDURE uspContractTemplateRead
+    @ContractTemplateID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    FROM ContractTemplate
+    WHERE ContractTemplateID = @ContractTemplateID AND IsDeleted = 0;
+END;
+
+CREATE PROCEDURE uspContractTemplateReadAll
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+    FROM ContractTemplate
+    WHERE IsActive = 1 AND IsDeleted = 0
+    ORDER BY ContractName ASC;
+END;
+
+CREATE PROCEDURE uspContractTemplateReadPaged
+    @PageNumber INT = 1,
+    @PageSize INT = 10,
+    @ServiceCategory NVARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @ServiceCategory IS NULL
+    BEGIN
+        SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+        FROM ContractTemplate
+        WHERE IsDeleted = 0
+        ORDER BY ContractName ASC
+        OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+
+        SELECT COUNT(*) AS TotalCount
+        FROM ContractTemplate
+        WHERE IsDeleted = 0;
+    END
+    ELSE
+    BEGIN
+        SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+        FROM ContractTemplate
+        WHERE ServiceCategory = @ServiceCategory AND IsDeleted = 0
+        ORDER BY ContractName ASC
+        OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+
+        SELECT COUNT(*) AS TotalCount
+        FROM ContractTemplate
+        WHERE ServiceCategory = @ServiceCategory AND IsDeleted = 0;
+    END
+END;
+
+CREATE PROCEDURE uspContractTemplateGetByCategory
+    @ServiceCategory NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+    FROM ContractTemplate
+    WHERE ServiceCategory = @ServiceCategory AND IsActive = 1 AND IsDeleted = 0
+    ORDER BY ContractName ASC;
+END;
+
+CREATE PROCEDURE uspContractTemplateGetActive
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+    FROM ContractTemplate
+    WHERE IsActive = 1 AND IsDeleted = 0
+    ORDER BY ServiceCategory ASC, ContractName ASC;
+END;
+
+CREATE PROCEDURE uspContractTemplateGetByName
+    @ContractName NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    FROM ContractTemplate
+    WHERE ContractName = @ContractName AND IsDeleted = 0;
+END;
+
+CREATE PROCEDURE uspContractTemplateDelete
+    @ContractTemplateID INT,
+    @DeletedBy INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE ContractTemplate
+    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy, UpdatedAt = GETUTCDATE()
+    WHERE ContractTemplateID = @ContractTemplateID AND IsDeleted = 0;
+
+    SELECT @ContractTemplateID AS ContractTemplateID;
+END;
+

@@ -1816,3 +1816,396 @@ PRINT 'Email Templates seeded: 10 templates';
 
 -- Verify EmailTemplate records
 SELECT 'EmailTemplate' AS TableName, COUNT(*) AS ActiveRecords FROM EmailTemplate WHERE IsDeleted = 0;
+
+-- ============================================
+-- SEED CONTRACT TEMPLATES (Gap #18)
+-- ============================================
+
+PRINT '=== Seeding Contract Templates ===';
+
+-- 1. Wedding Service Agreement
+EXEC uspContractTemplateUpsert
+    @Id = 0,
+    @ContractName = 'Wedding Service Agreement',
+    @ServiceCategory = 'Wedding',
+    @TemplateText = 'WEDDING PHOTOGRAPHY SERVICE AGREEMENT
+
+This Wedding Photography Service Agreement (the "Agreement") is entered into as of {SigningDate} by and between Studio S2, a professional photography service (the "Photographer"), and {ClientName} (the "Client").
+
+1. SERVICE DESCRIPTION
+The Photographer agrees to provide professional photography services for the Client''s wedding event as follows:
+- Event Date: {EventDate}
+- Event Location: {EventLocation}
+- Duration: {ServiceDuration} hours
+- Service Type: {ServiceDescription}
+
+2. PRICING AND PAYMENT TERMS
+- Service Rate: {Rate}
+- Deposit (due upon signing): {DepositAmount}
+- Final Payment (due {PaymentTerms}): {FinalAmount}
+- Currency: INR
+
+The deposit is non-refundable unless the Photographer cancels the event. Final payment must be received before the event.
+
+3. CANCELLATION POLICY
+{CancellationPolicy}
+
+4. DELIVERABLES
+The Photographer will provide:
+- Professional edited digital photographs
+- Access to private online gallery
+- High-resolution digital files
+- Print-ready files
+
+5. USAGE RIGHTS AND LICENSING
+The Client grants the Photographer permission to use photographs for portfolio, website, and promotional purposes with proper attribution.
+
+6. LIMITATIONS
+The Photographer is not liable for:
+- Unforeseen circumstances beyond reasonable control
+- Lost or damaged original files due to equipment failure
+- Failure to capture specific shots due to lighting or technical limitations
+
+7. INTELLECTUAL PROPERTY
+All original photographs remain the intellectual property of the Photographer. The Client receives a personal use license for the purchased photographs.
+
+8. REVISIONS AND RETAKES
+One round of basic edits is included. Additional revisions will be charged at the rate of {RevisionRate}.
+
+Agreed and signed:
+
+Client: _________________________ Date: _____________
+
+Photographer: _________________________ Date: _____________',
+    @PlaceholderVariables = '{SigningDate}, {ClientName}, {EventDate}, {EventLocation}, {ServiceDuration}, {ServiceDescription}, {Rate}, {DepositAmount}, {FinalAmount}, {PaymentTerms}, {CancellationPolicy}, {RevisionRate}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 2. Portrait Session Agreement
+EXEC uspContractTemplateUpsert
+    @Id = 0,
+    @ContractName = 'Portrait Session Agreement',
+    @ServiceCategory = 'Portrait',
+    @TemplateText = 'PORTRAIT PHOTOGRAPHY SESSION AGREEMENT
+
+This Portrait Photography Service Agreement (the "Agreement") is entered into as of {SigningDate} by and between Studio S2 (the "Photographer"), and {ClientName} (the "Client").
+
+1. SESSION DETAILS
+- Session Date: {EventDate}
+- Session Time: {SessionTime}
+- Location: {EventLocation}
+- Duration: {ServiceDuration} minutes
+- Number of Subjects: {NumberOfSubjects}
+
+2. PRICING AND PAYMENT
+- Session Rate: {Rate}
+- Retouching: {RetouchingInclusion}
+- Rush Processing Fee (if applicable): {RushFee}
+- Total Amount: {FinalAmount}
+
+50% deposit required to confirm the session. Final payment due at the time of session.
+
+3. CANCELLATION AND RESCHEDULING
+Cancellations made with 48 hours notice will result in deposit forfeiture. The Client may reschedule once without additional charge.
+
+4. ATTIRE AND PREPARATION
+The Client is responsible for:
+- Coordinating appropriate attire
+- Providing direction regarding hair and makeup
+- Clearing the agreed location of personal items
+- Arranging any necessary permits for location use
+
+5. PHOTOGRAPHS AND DELIVERABLES
+The Photographer will deliver:
+- Minimum {MinimumPhotos} edited digital photographs
+- Online gallery access (valid for {GalleryAccessDays} days)
+- High-resolution files
+- Consent to print and share
+
+6. USAGE AND INTELLECTUAL PROPERTY
+All photographs are owned by the Photographer. The Client receives a personal, non-commercial use license.
+
+7. RETOUCHING
+Basic retouching (skin smoothing, color correction) is included. Additional retouching will be charged at {RetouchingRate}.
+
+Agreed and signed:
+
+Client: _________________________ Date: _____________
+
+Photographer: _________________________ Date: _____________',
+    @PlaceholderVariables = '{SigningDate}, {ClientName}, {EventDate}, {SessionTime}, {EventLocation}, {ServiceDuration}, {NumberOfSubjects}, {Rate}, {RetouchingInclusion}, {RushFee}, {FinalAmount}, {MinimumPhotos}, {GalleryAccessDays}, {RetouchingRate}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 3. Event Photography Contract
+EXEC uspContractTemplateUpsert
+    @Id = 0,
+    @ContractName = 'Event Photography Contract',
+    @ServiceCategory = 'Events',
+    @TemplateText = 'EVENT PHOTOGRAPHY SERVICES AGREEMENT
+
+This Event Photography Services Agreement (the "Agreement") is entered into as of {SigningDate} between Studio S2 (the "Photographer") and {ClientName} (the "Client").
+
+1. EVENT DETAILS
+- Event Name: {EventName}
+- Event Date: {EventDate}
+- Event Duration: {ServiceDuration} hours
+- Event Type: {EventType}
+- Event Location: {EventLocation}
+- Number of Photographers: {NumberOfPhotographers}
+
+2. SERVICES AND DELIVERABLES
+The Photographer will provide:
+- Professional photography coverage for the specified duration
+- {MinimumPhotos}+ carefully edited digital photographs
+- Online private gallery for sharing and ordering prints
+- Professional color correction and basic retouching
+- High-resolution files for personal use and printing
+
+3. FEES AND PAYMENT SCHEDULE
+- Service Fee: {Rate}
+- Deposit (50%): {DepositAmount}
+- Balance Due: {FinalAmount} on {PaymentTerms}
+
+The deposit confirms the event date and is non-refundable if the Client cancels with less than 30 days notice.
+
+4. SCHEDULE AND COVERAGE
+Photography coverage begins at {StartTime} and concludes at {EndTime}. Additional coverage may be arranged for {AdditionalHourRate}/hour.
+
+5. SPECIAL REQUESTS
+Special requests (such as drone photography, video, or extended album production) must be arranged in advance and will incur additional fees.
+
+6. CANCELLATION POLICY
+{CancellationPolicy}
+
+7. INTELLECTUAL PROPERTY AND USAGE RIGHTS
+All original photographs and negatives remain the sole property of the Photographer. The Client receives a personal, non-exclusive license to use the photographs for personal use only.
+
+8. LIABILITY
+The Photographer is not responsible for:
+- Loss or damage to equipment
+- Failure to capture images due to weather or unforeseen circumstances
+- Errors or omissions in photography selection or editing
+
+9. CORRECTIONS AND CHANGES
+The Client may request basic corrections (exposure, color correction). Major re-editing or artistic changes will be charged separately.
+
+Agreed and signed:
+
+Client: _________________________ Date: _____________
+
+Photographer: _________________________ Date: _____________',
+    @PlaceholderVariables = '{SigningDate}, {ClientName}, {EventName}, {EventDate}, {ServiceDuration}, {EventType}, {EventLocation}, {NumberOfPhotographers}, {MinimumPhotos}, {Rate}, {DepositAmount}, {FinalAmount}, {PaymentTerms}, {StartTime}, {EndTime}, {AdditionalHourRate}, {CancellationPolicy}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 4. Video Services Agreement
+EXEC uspContractTemplateUpsert
+    @Id = 0,
+    @ContractName = 'Video Services Agreement',
+    @ServiceCategory = 'Video',
+    @TemplateText = 'VIDEO PRODUCTION SERVICES AGREEMENT
+
+This Video Production Services Agreement (the "Agreement") is entered into as of {SigningDate} between Studio S2 (the "Producer") and {ClientName} (the "Client").
+
+1. PROJECT SCOPE
+- Project Name: {ProjectName}
+- Project Type: {VideoType}
+- Shoot Date(s): {EventDate}
+- Location(s): {EventLocation}
+- Deliverable Length: {VideoLength} minutes
+
+2. VIDEO PRODUCTION PACKAGE
+Studio S2 will provide:
+- Professional videography with {NumberOfCameras} camera(s)
+- Professional audio recording
+- {NumberOfDays} days of shooting
+- Professional color grading and color correction
+- {RevisionRounds} rounds of revisions
+- Final video delivery in {DeliveryFormats}
+- Raw footage on external hard drive
+
+3. FEES AND PAYMENT TERMS
+- Service Fee: {Rate}
+- Deposit (50%): {DepositAmount}
+- Final Payment: {FinalAmount} due {PaymentTerms}
+- Rush Processing (if applicable): {RushFee}
+
+Payment plan: 50% due to confirm the project, balance due upon delivery.
+
+4. TIMELINE
+- Filming: {EventDate}
+- Post-Production: {ProductionDays} business days
+- Final Delivery: {DeliveryDate}
+
+5. REVISION POLICY
+{RevisionRounds} rounds of major revisions are included. Additional revisions will be charged at {RevisionRate}.
+
+6. DELIVERABLES
+- Primary edited video file
+- YouTube-optimized version
+- Social media clips (15-30 seconds)
+- Hard drive with all files
+
+7. INTELLECTUAL PROPERTY
+The Producer retains ownership of the original video and footage. The Client receives a license to use the final video for personal and commercial purposes as agreed.
+
+8. CANCELLATION AND RESCHEDULING
+Cancellations within 14 days of the shoot date will forfeit the deposit. Rescheduling is permitted once.
+
+9. LIABILITY AND LIMITATIONS
+The Producer is not liable for:
+- Loss of footage due to equipment malfunction
+- Inability to capture specific moments
+- Video degradation from third-party hosting
+
+Agreed and signed:
+
+Client: _________________________ Date: _____________
+
+Producer: _________________________ Date: _____________',
+    @PlaceholderVariables = '{SigningDate}, {ClientName}, {ProjectName}, {VideoType}, {EventDate}, {EventLocation}, {VideoLength}, {NumberOfCameras}, {NumberOfDays}, {DeliveryFormats}, {Rate}, {DepositAmount}, {FinalAmount}, {PaymentTerms}, {RushFee}, {ProductionDays}, {DeliveryDate}, {RevisionRounds}, {RevisionRate}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 5. Corporate Photography Contract
+EXEC uspContractTemplateUpsert
+    @Id = 0,
+    @ContractName = 'Corporate Photography Contract',
+    @ServiceCategory = 'Corporate',
+    @TemplateText = 'CORPORATE PHOTOGRAPHY SERVICES AGREEMENT
+
+This Corporate Photography Services Agreement (the "Agreement") is entered into as of {SigningDate} between Studio S2 (the "Photographer") and {ClientName} (the "Client").
+
+1. ASSIGNMENT DETAILS
+- Assignment Type: {AssignmentType}
+- Location(s): {EventLocation}
+- Date(s): {EventDate}
+- Time: {ServiceDuration} hours
+- Subject Matter: {SubjectMatter}
+
+2. DELIVERABLES
+The Photographer will provide:
+- {MinimumPhotos}+ professionally edited images
+- Digital download of all selected images
+- Web-resolution files for internal use
+- Print-ready high-resolution files
+- Online gallery with password protection
+
+3. USAGE RIGHTS AND LICENSING
+The Client receives a one-time license to:
+- Use photographs for internal company communications
+- Display on company website and social media
+- Include in print materials and reports
+
+The Client does NOT receive the right to:
+- Sublicense or resell the photographs
+- Remove or alter the photographer''s copyright notice
+- Use photographs beyond {LicenseDuration} from delivery date
+
+4. FEE STRUCTURE
+- Photography Service: {Rate}
+- Usage License: Included
+- Deposit (required to confirm): {DepositAmount}
+- Balance Due: {FinalAmount} within {PaymentTerms} of delivery
+
+5. ADDITIONAL REQUIREMENTS
+- Parking and access arrangements: {ClientResponsibility}
+- Props or set preparation: Client shall provide
+- Models or subjects: Client shall ensure consent and availability
+
+6. CANCELLATION POLICY
+Cancellation with less than 7 days notice will forfeit the deposit. Cancellation with 7+ days notice will refund the deposit minus {CancellationFee}.
+
+7. INTELLECTUAL PROPERTY
+All original photographs and digital files remain the exclusive property of the Photographer. The Client receives only the specified license to use.
+
+8. INDEMNIFICATION
+The Client agrees to indemnify the Photographer against any claims arising from the Client''s use of the photographs beyond the scope of the license granted.
+
+Agreed and signed:
+
+Client: _________________________ Date: _____________
+
+Photographer: _________________________ Date: _____________',
+    @PlaceholderVariables = '{SigningDate}, {ClientName}, {AssignmentType}, {EventLocation}, {EventDate}, {ServiceDuration}, {SubjectMatter}, {MinimumPhotos}, {LicenseDuration}, {Rate}, {DepositAmount}, {FinalAmount}, {PaymentTerms}, {ClientResponsibility}, {CancellationFee}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- 6. Licensing & Usage Rights Agreement
+EXEC uspContractTemplateUpsert
+    @Id = 0,
+    @ContractName = 'Licensing & Usage Rights Agreement',
+    @ServiceCategory = 'Other',
+    @TemplateText = 'PHOTOGRAPHY LICENSING AND USAGE RIGHTS AGREEMENT
+
+This Licensing and Usage Rights Agreement (the "Agreement") is entered into as of {SigningDate} between Studio S2 (the "Licensor") and {ClientName} (the "Licensee").
+
+1. LICENSED CONTENT
+Licensed Photographs: {PhotoCount} images from {EventName}
+License Grant Date: {SigningDate}
+License Expiration: {LicenseExpiration}
+
+2. GRANT OF LICENSE
+The Licensor grants to the Licensee a {LicenseType} license to use the Licensed Photographs as follows:
+
+PERMITTED USES:
+- {PermittedUse1}
+- {PermittedUse2}
+- {PermittedUse3}
+
+PROHIBITED USES:
+- Sublicensing or resale of the photographs
+- Alteration, modification, or derivative works without written consent
+- Use in competing commercial ventures
+- Removal of copyright notices or watermarks
+
+3. ATTRIBUTION REQUIREMENTS
+When using the Licensed Photographs, the Licensee shall:
+- Maintain all copyright notices and watermarks
+- Provide credit as follows: "Photography by Studio S2" in reasonable proximity to the image
+- Include a hyperlink to Studio S2 website where possible
+
+4. PAYMENT AND FEES
+License Fee: {LicenseFee}
+License Duration: {LicenseDuration}
+Renewal Fee: {RenewalFee}
+
+Payment Terms: {PaymentTerms}
+
+5. RESTRICTIONS
+The Licensee shall NOT:
+- Use photographs for purposes not expressly authorized
+- Permit third parties to use the photographs without additional licensing
+- Create derivative works or use AI to modify the photographs
+- Use photographs beyond the license term
+
+6. TERM AND TERMINATION
+- License Term: {LicenseDuration} from {SigningDate}
+- Renewal: Automatic unless notice of non-renewal is provided 30 days before expiration
+- Termination: Either party may terminate with 30 days written notice
+
+Upon termination or expiration, the Licensee shall cease use of the photographs and confirm destruction of all copies.
+
+7. WARRANTY AND LIABILITY
+The Licensor warrants that it owns all rights to the Licensed Photographs. The Licensor is not liable for:
+- Licensee''s misuse or unauthorized use
+- Third-party claims arising from the Licensee''s use
+- Loss of revenue or business interruption
+
+8. CONFIDENTIALITY
+The Licensee agrees to maintain confidentiality regarding the terms of this license and the existence of unpublished photographs.
+
+Agreed and signed:
+
+Licensee: _________________________ Date: _____________
+
+Licensor: _________________________ Date: _____________',
+    @PlaceholderVariables = '{SigningDate}, {ClientName}, {PhotoCount}, {EventName}, {LicenseExpiration}, {LicenseType}, {PermittedUse1}, {PermittedUse2}, {PermittedUse3}, {LicenseFee}, {LicenseDuration}, {RenewalFee}, {PaymentTerms}',
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+PRINT 'Contract Templates seeded: 6 templates';
+
+-- Verify ContractTemplate records
+SELECT 'ContractTemplate' AS TableName, COUNT(*) AS ActiveRecords FROM ContractTemplate WHERE IsDeleted = 0;
