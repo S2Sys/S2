@@ -1,5 +1,27 @@
 -- STUDIOS2 Database Schema - Clean Architecture with UPSERT Pattern
--- 36 Tables for Photography Portfolio & Booking System with Role-Based Auth, Campaigns & Offers
+-- 42 Tables for Photography Portfolio & Booking System with Role-Based Auth, Campaigns & Offers
+-- PHASE 1: RowState pattern + Branch support for multi-branch operations
+
+-- ============================================
+-- BRANCH MANAGEMENT (Multi-Branch Support)
+-- ============================================
+
+CREATE TABLE Branch (
+    BranchID INT PRIMARY KEY IDENTITY(1,1),
+    BranchName NVARCHAR(255) NOT NULL UNIQUE,
+    Location NVARCHAR(500),
+    Address NVARCHAR(500),
+    Phone NVARCHAR(20),
+    Email NVARCHAR(255),
+    IsHeadquarters BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    CreatedAt DATETIME DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME DEFAULT GETUTCDATE(),
+    CHECK (RowState IN ('Active', 'Inactive', 'Deleted')),
+    CHECK (IsHeadquarters IN (0, 1)),
+    INDEX IDX_Branch_RowState (RowState),
+    INDEX IDX_Branch_IsHeadquarters (IsHeadquarters)
+);
 
 -- ============================================
 -- AUTHENTICATION & AUTHORIZATION
@@ -15,6 +37,7 @@ CREATE TABLE Roles (
 
 CREATE TABLE Users (
     UserID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     Email NVARCHAR(255) NOT NULL UNIQUE,
     PasswordHash NVARCHAR(255) NOT NULL,
     FullName NVARCHAR(255) NOT NULL,
@@ -32,7 +55,9 @@ CREATE TABLE Users (
     MaxBookingsPerMonth INT,
     PreferredWorkingHours NVARCHAR(500),
 
-    INDEX IDX_Users_IsPhotographer (IsPhotographer)
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
+    INDEX IDX_Users_IsPhotographer (IsPhotographer),
+    INDEX IDX_Users_BranchID (BranchID)
 );
 
 CREATE TABLE UserRoles (
@@ -58,6 +83,7 @@ CREATE TABLE Settings (
 
 CREATE TABLE Event (
     EventID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     EventName NVARCHAR(255) NOT NULL,
     EventDate DATETIME NOT NULL,
     Location NVARCHAR(500),
@@ -68,18 +94,17 @@ CREATE TABLE Event (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (Status IN ('Scheduled', 'In Progress', 'Completed', 'Cancelled')),
     CONSTRAINT CHK_Event_EventType CHECK (EventType IN ('Wedding', 'Portrait', 'Corporate', 'Personal', 'Other')),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_Event_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_Event_UpdatedBy (UpdatedBy),
     INDEX IDX_Event_EventType (EventType),
-    INDEX IDX_Event_IsDeleted (IsDeleted)
+    INDEX IDX_Event_RowState (RowState),
+    INDEX IDX_Event_BranchID (BranchID)
 );
 
 -- ============================================
@@ -100,17 +125,14 @@ CREATE TABLE LocationFee (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (SurchargeAmount >= 0),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_LocationFee_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_LocationFee_City (City),
     INDEX IDX_LocationFee_IsActive (IsActive),
-    INDEX IDX_LocationFee_IsDeleted (IsDeleted)
+    INDEX IDX_LocationFee_RowState (RowState)
 );
 
 -- ============================================
@@ -152,29 +174,26 @@ CREATE TABLE Communication (
     CreatedBy INT NOT NULL,
     UpdatedBy INT,
     UpdatedAt DATETIME,
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
 
     -- Foreign keys
     FOREIGN KEY (FromUserID) REFERENCES Users(UserID),
     FOREIGN KEY (ToClientID) REFERENCES ClientInfo(ClientID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
 
     -- Constraints
     CONSTRAINT CHK_Communication_EntityType CHECK (EntityType IN ('Event', 'Booking', 'Quotation', 'Invoice', 'Gallery', 'Package', 'Payment')),
     CONSTRAINT CHK_Communication_MessageType CHECK (MessageType IN ('Email', 'SMS', 'Note', 'InApp')),
     CONSTRAINT CHK_Communication_Status CHECK (Status IN ('Pending', 'Sent', 'Delivered', 'Read', 'Failed')),
-    CONSTRAINT CHK_Communication_IsDeleted CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_Communication_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
 
     -- Indexes for common queries
     INDEX IDX_Communication_EntityType (EntityType, EntityID),
     INDEX IDX_Communication_ToEmail (ToEmail),
     INDEX IDX_Communication_Status (Status),
     INDEX IDX_Communication_CreatedAt (CreatedAt),
-    INDEX IDX_Communication_IsDeleted (IsDeleted),
+    INDEX IDX_Communication_RowState (RowState),
     INDEX IDX_Communication_FromUserID (FromUserID),
     INDEX IDX_Communication_ToClientID (ToClientID)
 );
@@ -207,19 +226,16 @@ CREATE TABLE Quotation (
     DeclinedAt DATETIME,
     RejectionReason NVARCHAR(500),
 
-    -- Soft Delete
-    IsDeleted BIT DEFAULT 0,
-    DeletedAt DATETIME,
-    DeletedBy INT,
+    -- RowState
+    RowState NVARCHAR(50) DEFAULT 'Active',
 
     FOREIGN KEY (EventID) REFERENCES Event(EventID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (Status IN ('Draft', 'Sent', 'Accepted', 'Rejected', 'Converted')),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_Quotation_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_Quotation_UpdatedBy (UpdatedBy),
-    INDEX IDX_Quotation_IsDeleted (IsDeleted)
+    INDEX IDX_Quotation_RowState (RowState)
 );
 
 CREATE TABLE QuotationItem (
@@ -354,6 +370,7 @@ CREATE TABLE GalleryType (
 
 CREATE TABLE Gallery (
     GalleryID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     GalleryTypeID INT NOT NULL,
     EventID INT,
     Title NVARCHAR(255) NOT NULL,
@@ -375,26 +392,25 @@ CREATE TABLE Gallery (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     -- Gap #24: Gallery photographer assignment
     AssignedToPhotographerUserID INT,
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (GalleryTypeID) REFERENCES GalleryType(GalleryTypeID),
     FOREIGN KEY (EventID) REFERENCES Event(EventID) ON DELETE SET NULL,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (ApprovedByUserID) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     FOREIGN KEY (AssignedToPhotographerUserID) REFERENCES Users(UserID),
     -- Private galleries must be tied to an event for client access control
     CONSTRAINT CHK_Gallery_PrivateEventID CHECK ((IsPrivate = 0) OR (IsPrivate = 1 AND EventID IS NOT NULL)),
     CONSTRAINT CHK_Gallery_ReviewStatus CHECK (ReviewStatus IN ('Draft', 'UnderReview', 'ApprovedByClient', 'ReadyForDelivery', 'Delivered')),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_Gallery_RowState CHECK (RowState IN ('Active', 'Draft', 'PendingApproval', 'Published', 'Archived', 'Deleted')),
     INDEX IDX_Gallery_UpdatedBy (UpdatedBy),
     INDEX IDX_Gallery_ReviewStatus (ReviewStatus),
-    INDEX IDX_Gallery_IsDeleted (IsDeleted),
-    INDEX IDX_Gallery_AssignedToPhotographer (AssignedToPhotographerUserID)
+    INDEX IDX_Gallery_RowState (RowState),
+    INDEX IDX_Gallery_AssignedToPhotographer (AssignedToPhotographerUserID),
+    INDEX IDX_Gallery_BranchID (BranchID)
 );
 
 CREATE TABLE GalleryAsset (
@@ -412,18 +428,15 @@ CREATE TABLE GalleryAsset (
     RetouchNotes NVARCHAR(MAX),
     CreatedBy INT NOT NULL,
     UploadedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (GalleryID) REFERENCES Gallery(GalleryID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CONSTRAINT CHK_GalleryAsset_AssetStatus CHECK (AssetStatus IN ('Original', 'Retouched', 'Final', 'Archived', 'Rejected')),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_GalleryAsset_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_GalleryAsset_GalleryIDAssetType (GalleryID, AssetType),
     INDEX IDX_GalleryAsset_CreatedBy (CreatedBy),
     INDEX IDX_GalleryAsset_AssetStatus (AssetStatus),
-    INDEX IDX_GalleryAsset_IsDeleted (IsDeleted)
+    INDEX IDX_GalleryAsset_RowState (RowState)
 );
 
 CREATE TABLE GalleryAccess (
@@ -433,16 +446,13 @@ CREATE TABLE GalleryAccess (
     AccessLevel NVARCHAR(50) DEFAULT 'View',
     CreatedBy INT,
     GrantedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (GalleryID) REFERENCES Gallery(GalleryID) ON DELETE CASCADE,
     FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_GalleryAccess_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     UNIQUE(GalleryID, UserID),
-    INDEX IDX_GalleryAccess_IsDeleted (IsDeleted)
+    INDEX IDX_GalleryAccess_RowState (RowState)
 );
 
 -- ============================================
@@ -451,6 +461,7 @@ CREATE TABLE GalleryAccess (
 
 CREATE TABLE PhotographyPackage (
     PackageID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     PackageName NVARCHAR(255) NOT NULL,
     PackageDescription NVARCHAR(MAX),
     BasePrice DECIMAL(10,2) NOT NULL,
@@ -471,18 +482,17 @@ CREATE TABLE PhotographyPackage (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CONSTRAINT CHK_PhotographyPackage_ServiceCategory CHECK (ServiceCategory IN ('Wedding', 'Portrait', 'Events', 'Video', 'Corporate', 'Other')),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_PhotographyPackage_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_PhotographyPackage_CreatedBy (CreatedBy),
     INDEX IDX_PhotographyPackage_UpdatedBy (UpdatedBy),
     INDEX IDX_PhotographyPackage_ServiceCategory (ServiceCategory),
-    INDEX IDX_PhotographyPackage_IsDeleted (IsDeleted)
+    INDEX IDX_PhotographyPackage_RowState (RowState),
+    INDEX IDX_PhotographyPackage_BranchID (BranchID)
 );
 
 CREATE TABLE PackageComponent (
@@ -500,15 +510,12 @@ CREATE TABLE PackageComponent (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME,
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (PackageID) REFERENCES PhotographyPackage(PackageID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
-    CHECK (IsDeleted IN (0, 1)),
-    INDEX IDX_PackageComponent_IsDeleted (IsDeleted)
+    CONSTRAINT CHK_PackageComponent_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
+    INDEX IDX_PackageComponent_RowState (RowState)
 );
 
 CREATE TABLE PackageAddOn (
@@ -526,15 +533,12 @@ CREATE TABLE PackageAddOn (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME,
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (PackageID) REFERENCES PhotographyPackage(PackageID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
-    CHECK (IsDeleted IN (0, 1)),
-    INDEX IDX_PackageAddOn_IsDeleted (IsDeleted)
+    CONSTRAINT CHK_PackageAddOn_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
+    INDEX IDX_PackageAddOn_RowState (RowState)
 );
 
 CREATE TABLE PackageDiscount (
@@ -550,15 +554,12 @@ CREATE TABLE PackageDiscount (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (PackageID) REFERENCES PhotographyPackage(PackageID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
-    CHECK (IsDeleted IN (0, 1)),
-    INDEX IDX_PackageDiscount_IsDeleted (IsDeleted)
+    CONSTRAINT CHK_PackageDiscount_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
+    INDEX IDX_PackageDiscount_RowState (RowState)
 );
 
 -- ============================================
@@ -567,6 +568,7 @@ CREATE TABLE PackageDiscount (
 
 CREATE TABLE Campaign (
     CampaignID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     CampaignName NVARCHAR(255) NOT NULL,
     Description NVARCHAR(MAX),
     CampaignType NVARCHAR(50),
@@ -583,18 +585,17 @@ CREATE TABLE Campaign (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (DiscountType IN ('Percentage', 'Fixed', 'BOGO', 'FreeAddon')),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_Campaign_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_Campaign_Active (IsActive),
     INDEX IDX_Campaign_DateRange (StartDate, EndDate),
     INDEX IDX_Campaign_CreatedBy (CreatedBy),
-    INDEX IDX_Campaign_IsDeleted (IsDeleted)
+    INDEX IDX_Campaign_RowState (RowState),
+    INDEX IDX_Campaign_BranchID (BranchID)
 );
 
 -- ============================================
@@ -609,19 +610,16 @@ CREATE TABLE CampaignPackage (
     CreatedBy INT,
     AppliedAt DATETIME DEFAULT GETUTCDATE(),
     RemovedAt DATETIME,
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (CampaignID) REFERENCES Campaign(CampaignID) ON DELETE CASCADE,
     FOREIGN KEY (PackageID) REFERENCES PhotographyPackage(PackageID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_CampaignPackage_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     UNIQUE(CampaignID, PackageID),
     INDEX IDX_CampaignPackage_Campaign (CampaignID),
     INDEX IDX_CampaignPackage_Package (PackageID),
     INDEX IDX_CampaignPackage_Applicable (IsApplicable),
-    INDEX IDX_CampaignPackage_IsDeleted (IsDeleted)
+    INDEX IDX_CampaignPackage_RowState (RowState)
 );
 
 -- ============================================
@@ -640,9 +638,7 @@ CREATE TABLE ClientInfo (
     CreatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
-    DeletedAt DATETIME,
-    DeletedBy INT,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     -- Gap #23: CRM Fields
     PersonalNotes NVARCHAR(MAX),
     PreferredPhotographerUserID INT,
@@ -651,14 +647,15 @@ CREATE TABLE ClientInfo (
     LifetimeValue DECIMAL(10,2) DEFAULT 0,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     FOREIGN KEY (PreferredPhotographerUserID) REFERENCES Users(UserID),
-    INDEX IDX_ClientInfo_IsDeleted (IsDeleted),
+    CONSTRAINT CHK_ClientInfo_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
+    INDEX IDX_ClientInfo_RowState (RowState),
     INDEX IDX_ClientInfo_CreatedBy (CreatedBy)
 );
 
 CREATE TABLE Booking (
     BookingID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     PackageID INT NOT NULL,
     ClientID INT NOT NULL,
     QuotationID INT NOT NULL,
@@ -669,20 +666,19 @@ CREATE TABLE Booking (
     TotalPrice DECIMAL(10,2) NOT NULL,
     DepositAmount DECIMAL(10,2),
     DepositPaid BIT DEFAULT 0,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     SpecialRequests NVARCHAR(MAX),
     Notes NVARCHAR(MAX),
     CreatedBy INT NOT NULL,
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
 
     -- Location & Travel
     LocationFeeID INT,
     TravelSurcharge DECIMAL(10,2) DEFAULT 0,
 
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (PackageID) REFERENCES PhotographyPackage(PackageID),
     CHECK (TravelSurcharge >= 0),
     FOREIGN KEY (ClientID) REFERENCES ClientInfo(ClientID),
@@ -690,15 +686,16 @@ CREATE TABLE Booking (
     FOREIGN KEY (PhotographerUserID) REFERENCES Users(UserID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     FOREIGN KEY (LocationFeeID) REFERENCES LocationFee(LocationFeeID),
     CHECK (Status IN ('Confirmed', 'Scheduled', 'Completed', 'Cancelled')),
     -- Deposit is either not collected upfront (NULL) or cannot exceed total booking price
     CONSTRAINT CHK_Booking_DepositAmount CHECK (DepositAmount IS NULL OR DepositAmount <= TotalPrice),
+    CONSTRAINT CHK_Booking_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Completed', 'Cancelled', 'Deleted')),
     INDEX IDX_Booking_CreatedBy (CreatedBy),
     INDEX IDX_Booking_UpdatedBy (UpdatedBy),
-    INDEX IDX_Booking_IsDeleted (IsDeleted),
-    INDEX IDX_Booking_LocationFeeID (LocationFeeID)
+    INDEX IDX_Booking_RowState (RowState),
+    INDEX IDX_Booking_LocationFeeID (LocationFeeID),
+    INDEX IDX_Booking_BranchID (BranchID)
 );
 
 CREATE TABLE BookingPackage (
@@ -712,39 +709,37 @@ CREATE TABLE BookingPackage (
     FinalPrice DECIMAL(10,2) NOT NULL,
     PackageSnapshot NVARCHAR(MAX),
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (BookingID) REFERENCES Booking(BookingID) ON DELETE CASCADE,
     FOREIGN KEY (PackageID) REFERENCES PhotographyPackage(PackageID),
     FOREIGN KEY (CampaignID) REFERENCES Campaign(CampaignID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_BookingPackage_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_BookingPackage_CampaignID (CampaignID),
-    INDEX IDX_BookingPackage_IsDeleted (IsDeleted)
+    INDEX IDX_BookingPackage_RowState (RowState)
 );
 
 CREATE TABLE CalendarBlock (
     BlockID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     BookingID INT,
     BlockStart DATETIME NOT NULL,
     BlockEnd DATETIME NOT NULL,
     Status NVARCHAR(50) DEFAULT 'Booked',
     BlockReason NVARCHAR(255),
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (BookingID) REFERENCES Booking(BookingID) ON DELETE SET NULL,
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (BlockEnd > BlockStart),
     CHECK (Status IN ('Booked', 'Blocked', 'Maintenance', 'Hold')),
-    CHECK (IsDeleted IN (0, 1)),
-    INDEX IDX_CalendarBlock_IsDeleted (IsDeleted)
+    CONSTRAINT CHK_CalendarBlock_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
+    INDEX IDX_CalendarBlock_RowState (RowState),
+    INDEX IDX_CalendarBlock_BranchID (BranchID)
 );
 
 CREATE TABLE Availability (
     AvailabilityID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     PhotographerUserID INT NOT NULL,
     AvailabilityStart DATETIME NOT NULL,
     AvailabilityEnd DATETIME NOT NULL,
@@ -752,15 +747,14 @@ CREATE TABLE Availability (
     Notes NVARCHAR(500),
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (PhotographerUserID) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (AvailabilityEnd > AvailabilityStart),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_Availability_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_Availability_PhotographerUserID (PhotographerUserID),
-    INDEX IDX_Availability_IsDeleted (IsDeleted)
+    INDEX IDX_Availability_RowState (RowState),
+    INDEX IDX_Availability_BranchID (BranchID)
 );
 
 -- ============================================
@@ -769,6 +763,7 @@ CREATE TABLE Availability (
 
 CREATE TABLE DailyTask (
     TaskID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     BookingID INT,
     Title NVARCHAR(255) NOT NULL,
     Description NVARCHAR(MAX),
@@ -784,21 +779,20 @@ CREATE TABLE DailyTask (
     AssignedAt DATETIME,
     CompletedBy INT,
     CompletedAt DATETIME,
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (BookingID) REFERENCES Booking(BookingID) ON DELETE SET NULL,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (AssignedTo) REFERENCES Users(UserID),
     FOREIGN KEY (CompletedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (Status IN ('Pending', 'In Progress', 'On Hold', 'Completed', 'Cancelled')),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_DailyTask_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_DailyTask_CreatedBy (CreatedBy),
     INDEX IDX_DailyTask_AssignedTo (AssignedTo),
     INDEX IDX_DailyTask_Status_DueDate (Status, DueDate),
-    INDEX IDX_DailyTask_IsDeleted (IsDeleted)
+    INDEX IDX_DailyTask_RowState (RowState),
+    INDEX IDX_DailyTask_BranchID (BranchID)
 );
 
 CREATE TABLE TaskComment (
@@ -809,17 +803,14 @@ CREATE TABLE TaskComment (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME,
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (TaskID) REFERENCES DailyTask(TaskID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_TaskComment_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_TaskComment_TaskID_CreatedAt (TaskID, CreatedAt),
     INDEX IDX_TaskComment_CreatedBy (CreatedBy),
-    INDEX IDX_TaskComment_IsDeleted (IsDeleted)
+    INDEX IDX_TaskComment_RowState (RowState)
 );
 
 -- ============================================
@@ -832,14 +823,11 @@ CREATE TABLE BookingLog (
     Action NVARCHAR(100) NOT NULL,
     CreatedBy INT,
     Timestamp DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (BookingID) REFERENCES Booking(BookingID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
-    CHECK (IsDeleted IN (0, 1)),
-    INDEX IDX_BookingLog_IsDeleted (IsDeleted)
+    CONSTRAINT CHK_BookingLog_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
+    INDEX IDX_BookingLog_RowState (RowState)
 );
 
 CREATE TABLE ViewAnalytics (
@@ -853,6 +841,7 @@ CREATE TABLE ViewAnalytics (
 
 CREATE TABLE Invoice (
     InvoiceID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     BookingID INT NOT NULL,
     ClientID INT NOT NULL,
     QuotationID INT,
@@ -869,21 +858,20 @@ CREATE TABLE Invoice (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (BookingID) REFERENCES Booking(BookingID),
     FOREIGN KEY (ClientID) REFERENCES ClientInfo(ClientID),
     FOREIGN KEY (QuotationID) REFERENCES Quotation(QuotationID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (Status IN ('Draft', 'Issued', 'Sent', 'Partially Paid', 'Paid', 'Overdue')),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_Invoice_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Deleted')),
     INDEX IDX_Invoice_ClientID (ClientID),
     INDEX IDX_Invoice_CreatedBy (CreatedBy),
     INDEX IDX_Invoice_UpdatedBy (UpdatedBy),
-    INDEX IDX_Invoice_IsDeleted (IsDeleted)
+    INDEX IDX_Invoice_RowState (RowState),
+    INDEX IDX_Invoice_BranchID (BranchID)
 );
 
 -- ============================================
@@ -908,14 +896,11 @@ CREATE TABLE SEOMetadata (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
-    CHECK (IsDeleted IN (0, 1)),
-    INDEX IDX_SEOMetadata_IsDeleted (IsDeleted)
+    CONSTRAINT CHK_SEOMetadata_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
+    INDEX IDX_SEOMetadata_RowState (RowState)
 );
 
 -- ============================================
@@ -933,8 +918,7 @@ CREATE TABLE Asset (
     MimeType NVARCHAR(100),
     Description NVARCHAR(MAX),
     UploadedByUserID INT NOT NULL,
-    IsDeleted BIT DEFAULT 0,
-    DeletedAt DATETIME,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
     FOREIGN KEY (UploadedByUserID) REFERENCES Users(UserID),
@@ -946,6 +930,7 @@ CREATE TABLE Asset (
 
 CREATE TABLE Expense (
     ExpenseID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
     BookingID INT,
     EventID INT,
     ExpenseType NVARCHAR(100) NOT NULL,
@@ -957,10 +942,10 @@ CREATE TABLE Expense (
     CreatedByUserID INT NOT NULL,
     ApprovedByUserID INT,
     ApprovedDate DATETIME,
-    IsDeleted BIT DEFAULT 0,
-    DeletedAt DATETIME,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (BookingID) REFERENCES Booking(BookingID) ON DELETE SET NULL,
     FOREIGN KEY (EventID) REFERENCES Event(EventID) ON DELETE SET NULL,
     FOREIGN KEY (ReceiptAssetID) REFERENCES Asset(AssetID),
@@ -968,16 +953,53 @@ CREATE TABLE Expense (
     FOREIGN KEY (ApprovedByUserID) REFERENCES Users(UserID),
     CHECK (Status IN ('Pending', 'Approved', 'Rejected', 'Paid')),
     CHECK (ExpenseType IN ('Travel', 'Equipment', 'Crew', 'Venue', 'Catering', 'Payroll', 'Other')),
+    CONSTRAINT CHK_Expense_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_Expense_BookingID (BookingID),
     INDEX IDX_Expense_EventID (EventID),
     INDEX IDX_Expense_Status (Status),
     INDEX IDX_Expense_CreatedByUserID (CreatedByUserID),
-    INDEX IDX_Expense_ExpenseType (ExpenseType)
+    INDEX IDX_Expense_ExpenseType (ExpenseType),
+    INDEX IDX_Expense_BranchID (BranchID)
 );
 
 -- ============================================
 -- EQUIPMENT RENTAL SYSTEM (Phase 3)
 -- ============================================
+
+CREATE TABLE Equipment (
+    EquipmentID INT PRIMARY KEY IDENTITY(1,1),
+    BranchID INT NOT NULL,
+    EquipmentName NVARCHAR(255) NOT NULL,
+    EquipmentType NVARCHAR(100) NOT NULL,
+    SerialNumber NVARCHAR(100),
+    PurchaseDate DATETIME,
+    PurchasePrice DECIMAL(10,2),
+    CurrentValue DECIMAL(10,2),
+    DailyRentalRate DECIMAL(10,2),
+    WeeklyRentalRate DECIMAL(10,2),
+    MonthlyRentalRate DECIMAL(10,2),
+    DepositRequired DECIMAL(10,2),
+    InsuranceRequired BIT DEFAULT 1,
+    MaintenanceStatus NVARCHAR(50),
+    LastMaintenanceDate DATETIME,
+    NextMaintenanceDate DATETIME,
+    StorageLocation NVARCHAR(255),
+    Description NVARCHAR(MAX),
+    PhotoUrl NVARCHAR(500),
+    CreatedBy INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETUTCDATE(),
+    UpdatedBy INT,
+    UpdatedAt DATETIME DEFAULT GETUTCDATE(),
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
+    FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
+    CONSTRAINT CHK_Equipment_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
+    INDEX IDX_Equipment_EquipmentType (EquipmentType),
+    INDEX IDX_Equipment_MaintenanceStatus (MaintenanceStatus),
+    INDEX IDX_Equipment_RowState (RowState),
+    INDEX IDX_Equipment_BranchID (BranchID)
+);
 
 CREATE TABLE RentalClient (
     RentalClientID INT PRIMARY KEY IDENTITY(1,1),
@@ -1103,22 +1125,19 @@ CREATE TABLE PortfolioShowcase (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (EventID) REFERENCES Event(EventID),
     FOREIGN KEY (BeforeGalleryID) REFERENCES Gallery(GalleryID),
     FOREIGN KEY (AfterGalleryID) REFERENCES Gallery(GalleryID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (FeaturedRating BETWEEN 1 AND 5 OR FeaturedRating IS NULL),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_PortfolioShowcase_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_PortfolioShowcase_EventID (EventID),
     INDEX IDX_PortfolioShowcase_ServiceCategory (ServiceCategory),
     INDEX IDX_PortfolioShowcase_FeaturedRating (FeaturedRating),
     INDEX IDX_PortfolioShowcase_CreatedBy (CreatedBy),
-    INDEX IDX_PortfolioShowcase_IsDeleted (IsDeleted)
+    INDEX IDX_PortfolioShowcase_RowState (RowState)
 );
 
 -- ============================================
@@ -1137,18 +1156,15 @@ CREATE TABLE EmailTemplate (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CONSTRAINT CHK_EmailTemplate_TemplateType CHECK (TemplateType IN ('Invitation', 'Confirmation', 'Reminder', 'Notification', 'Receipt', 'Invoice', 'Other')),
-    CONSTRAINT CHK_EmailTemplate_IsDeleted CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_EmailTemplate_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_EmailTemplate_TemplateType (TemplateType),
     INDEX IDX_EmailTemplate_IsActive (IsActive),
     INDEX IDX_EmailTemplate_CreatedBy (CreatedBy),
-    INDEX IDX_EmailTemplate_IsDeleted (IsDeleted)
+    INDEX IDX_EmailTemplate_RowState (RowState)
 );
 
 -- ============================================
@@ -1166,18 +1182,15 @@ CREATE TABLE ContractTemplate (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     LastUpdatedBy INT,
     LastUpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (LastUpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (ServiceCategory IN ('Wedding', 'Portrait', 'Events', 'Video', 'Corporate', 'Other', NULL)),
-    CHECK (IsDeleted IN (0, 1)),
+    CONSTRAINT CHK_ContractTemplate_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_ContractTemplate_ServiceCategory (ServiceCategory),
     INDEX IDX_ContractTemplate_IsActive (IsActive),
     INDEX IDX_ContractTemplate_CreatedBy (CreatedBy),
-    INDEX IDX_ContractTemplate_IsDeleted (IsDeleted)
+    INDEX IDX_ContractTemplate_RowState (RowState)
 );
 
 -- ============================================
@@ -1198,24 +1211,21 @@ CREATE TABLE PricingRule (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (ServiceCategory IN ('Wedding', 'Portrait', 'Events', 'Video', 'Corporate', 'Other', NULL)),
     CHECK (RuleType IN ('Weekend', 'Holiday', 'Rush', 'Evening', 'Overnight', 'GroupDiscount', 'EarlyBird', 'Other')),
     CHECK (AdjustmentType IN ('Percentage', 'FixedAmount')),
     CHECK (AdjustmentValue != 0),
-    CHECK (IsDeleted IN (0, 1)),
     CHECK (EffectiveFrom IS NULL OR EffectiveTo IS NULL OR EffectiveFrom <= EffectiveTo),
+    CONSTRAINT CHK_PricingRule_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_PricingRule_ServiceCategory (ServiceCategory),
     INDEX IDX_PricingRule_RuleType (RuleType),
     INDEX IDX_PricingRule_IsActive (IsActive),
     INDEX IDX_PricingRule_EffectiveFrom (EffectiveFrom),
     INDEX IDX_PricingRule_CreatedBy (CreatedBy),
-    INDEX IDX_PricingRule_IsDeleted (IsDeleted)
+    INDEX IDX_PricingRule_RowState (RowState)
 );
 
 -- ============================================
@@ -1235,24 +1245,21 @@ CREATE TABLE DeliveryPackage (
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    DeletedBy INT,
-    DeletedAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (BookingID) REFERENCES Booking(BookingID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
     CHECK (DeliverableType IN ('OnlineGallery', 'PrintedAlbum', 'USB', 'Prints', 'VideoEditedMaster', 'RAWFiles', 'BlueRay', 'ProofBook', 'Canvas', 'Other')),
     CHECK (DeliveryMethod IN ('Email', 'Download', 'Physical', 'InPerson')),
-    CHECK (IsDeleted IN (0, 1)),
     CHECK (IsCompleted IN (0, 1)),
     CHECK (IsCompleted = 0 OR CompletedAt IS NOT NULL),
+    CONSTRAINT CHK_DeliveryPackage_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_DeliveryPackage_BookingID (BookingID),
     INDEX IDX_DeliveryPackage_DeliverableType (DeliverableType),
     INDEX IDX_DeliveryPackage_IsCompleted (IsCompleted),
     INDEX IDX_DeliveryPackage_DeliveryDate (DeliveryDate),
     INDEX IDX_DeliveryPackage_CreatedBy (CreatedBy),
-    INDEX IDX_DeliveryPackage_IsDeleted (IsDeleted)
+    INDEX IDX_DeliveryPackage_RowState (RowState)
 );
 
 -- ============================================
@@ -1265,7 +1272,6 @@ CREATE INDEX IDX_UserRoles_UserID ON UserRoles(UserID);
 CREATE INDEX IDX_UserRoles_RoleID ON UserRoles(RoleID);
 CREATE INDEX IDX_Event_Status ON Event(Status);
 CREATE INDEX IDX_Event_EventDate ON Event(EventDate);
-CREATE INDEX IDX_Event_EventType ON Event(EventType);
 CREATE INDEX IDX_Quotation_EventID ON Quotation(EventID);
 CREATE INDEX IDX_Quotation_ClientEmail ON Quotation(ClientEmail);
 CREATE INDEX IDX_Quotation_Status ON Quotation(Status);
@@ -1285,7 +1291,6 @@ CREATE INDEX IDX_Gallery_IsPublished ON Gallery(IsPublished);
 CREATE INDEX IDX_Gallery_EventID ON Gallery(EventID);
 CREATE INDEX IDX_Gallery_CreatedBy ON Gallery(CreatedBy);
 CREATE INDEX IDX_Gallery_IsPrivate ON Gallery(IsPrivate);
-CREATE INDEX IDX_Gallery_CreatedByIsPrivate ON Gallery(CreatedByUserID, IsPrivate);
 CREATE INDEX IDX_GalleryAsset_GalleryID ON GalleryAsset(GalleryID);
 CREATE INDEX IDX_GalleryAccess_GalleryID ON GalleryAccess(GalleryID);
 CREATE INDEX IDX_GalleryAccess_UserID ON GalleryAccess(UserID);
@@ -1295,7 +1300,6 @@ CREATE INDEX IDX_Booking_QuotationID ON Booking(QuotationID);
 CREATE INDEX IDX_Booking_PhotographerUserID ON Booking(PhotographerUserID);
 CREATE INDEX IDX_Booking_Status ON Booking(Status);
 CREATE INDEX IDX_Booking_BookingDate ON Booking(BookingDate);
-CREATE INDEX IDX_Booking_IsDeleted ON Booking(IsDeleted);
 CREATE INDEX IDX_CalendarBlock_BlockStart ON CalendarBlock(BlockStart);
 CREATE INDEX IDX_CalendarBlock_BlockEnd ON CalendarBlock(BlockEnd);
 CREATE INDEX IDX_CalendarBlock_BookingID ON CalendarBlock(BookingID);
@@ -1307,38 +1311,5 @@ CREATE INDEX IDX_ClientInfo_Email ON ClientInfo(Email);
 CREATE INDEX IDX_ClientInfo_IsVIP ON ClientInfo(IsVIP);
 CREATE INDEX IDX_ClientInfo_PreferredPhotographerUserID ON ClientInfo(PreferredPhotographerUserID);
 CREATE INDEX IDX_ClientInfo_LifetimeValue ON ClientInfo(LifetimeValue);
-CREATE INDEX IDX_ClientInfo_IsDeleted ON ClientInfo(IsDeleted);
-CREATE INDEX IDX_ClientInfo_CreatedBy ON ClientInfo(CreatedBy);
-CREATE INDEX IDX_ClientInfo_DeletedBy ON ClientInfo(DeletedBy);
 CREATE INDEX IDX_PhotographyPackage_IsActive ON PhotographyPackage(IsActive);
 CREATE INDEX IDX_PhotographyPackage_ServiceCategory ON PhotographyPackage(ServiceCategory);
-CREATE INDEX IDX_Gallery_ReviewStatus ON Gallery(ReviewStatus);
-CREATE INDEX IDX_GalleryAsset_AssetStatus ON GalleryAsset(AssetStatus);
-CREATE INDEX IDX_BookingPackage_CampaignID ON BookingPackage(CampaignID);
-
--- ============================================
--- SOFT-DELETE INDEXES (IsDeleted Column Optimization)
--- ============================================
-
-CREATE INDEX IDX_Event_IsDeleted ON Event(IsDeleted);
-CREATE INDEX IDX_Gallery_IsDeleted ON Gallery(IsDeleted);
-CREATE INDEX IDX_GalleryAsset_IsDeleted ON GalleryAsset(IsDeleted);
-CREATE INDEX IDX_GalleryAccess_IsDeleted ON GalleryAccess(IsDeleted);
-CREATE INDEX IDX_PhotographyPackage_IsDeleted ON PhotographyPackage(IsDeleted);
-CREATE INDEX IDX_PackageComponent_IsDeleted ON PackageComponent(IsDeleted);
-CREATE INDEX IDX_PackageAddOn_IsDeleted ON PackageAddOn(IsDeleted);
-CREATE INDEX IDX_PackageDiscount_IsDeleted ON PackageDiscount(IsDeleted);
-CREATE INDEX IDX_Campaign_IsDeleted ON Campaign(IsDeleted);
-CREATE INDEX IDX_CampaignPackage_IsDeleted ON CampaignPackage(IsDeleted);
-CREATE INDEX IDX_BookingPackage_IsDeleted ON BookingPackage(IsDeleted);
-CREATE INDEX IDX_CalendarBlock_IsDeleted ON CalendarBlock(IsDeleted);
-CREATE INDEX IDX_Availability_IsDeleted ON Availability(IsDeleted);
-CREATE INDEX IDX_DailyTask_IsDeleted ON DailyTask(IsDeleted);
-CREATE INDEX IDX_TaskComment_IsDeleted ON TaskComment(IsDeleted);
-CREATE INDEX IDX_BookingLog_IsDeleted ON BookingLog(IsDeleted);
-CREATE INDEX IDX_Invoice_IsDeleted ON Invoice(IsDeleted);
-CREATE INDEX IDX_SEOMetadata_IsDeleted ON SEOMetadata(IsDeleted);
-CREATE INDEX IDX_PortfolioShowcase_IsDeleted ON PortfolioShowcase(IsDeleted);
-CREATE INDEX IDX_EmailTemplate_IsDeleted ON EmailTemplate(IsDeleted);
-CREATE INDEX IDX_PricingRule_IsDeleted ON PricingRule(IsDeleted);
-CREATE INDEX IDX_DeliveryPackage_IsDeleted ON DeliveryPackage(IsDeleted);
