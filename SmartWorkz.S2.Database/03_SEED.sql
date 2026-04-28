@@ -67,6 +67,28 @@ EXEC usp_UserRoles_AssignRole
 PRINT 'Admin role assigned to admin user';
 
 -- ============================================
+-- SEED PHOTOGRAPHER USER (Gap #23)
+-- ============================================
+
+PRINT '=== Seeding Photographer User ===';
+
+DECLARE @PhotographerUserId INT;
+
+EXEC usp_Users_Upsert
+    @Id = 0,
+    @Email = 'photographer@smartworkz.com',
+    @PasswordHash = '$2a$12$w7m3L9kJ2n4pQ5xR8sT2u.Y6zVa1bCd3eF4gH5iJ6kL7mN8oP9qR0sT1u', -- bcrypt hash for 'Photo@123'
+    @FullName = 'Professional Photographer',
+    @Phone = '555-0002',
+    @Bio = 'Professional photographer with 15+ years experience',
+    @ProfilePhotoUrl = NULL,
+    @IsActive = 1;
+
+SELECT @PhotographerUserId = @@IDENTITY;
+
+PRINT 'Photographer user created: ID=' + CAST(@PhotographerUserId AS VARCHAR);
+
+-- ============================================
 -- SEED SETTINGS
 -- ============================================
 
@@ -176,13 +198,13 @@ PRINT 'Photo galleries seeded: Wedding=' + CAST(@WeddingGalleryId AS VARCHAR) + 
 
 PRINT '=== Seeding Gallery Photographer Assignments ===';
 
--- Assign galleries to photographer (UserID = 2)
+-- Assign galleries to photographer
 UPDATE Gallery
-SET AssignedToPhotographerUserID = 2
+SET AssignedToPhotographerUserID = @PhotographerUserId
 WHERE GalleryID IN (@WeddingGalleryId, @PortraitGalleryId);
 
 PRINT 'Gallery photographer assignments seeded: Wedding=' + CAST(@WeddingGalleryId AS VARCHAR) +
-      ', Portrait=' + CAST(@PortraitGalleryId AS VARCHAR) + ' assigned to PhotographerUserID=2';
+      ', Portrait=' + CAST(@PortraitGalleryId AS VARCHAR) + ' assigned to PhotographerUserID=' + CAST(@PhotographerUserId AS VARCHAR);
 
 -- ============================================
 -- SEED GALLERY ASSETS (Images)
@@ -626,7 +648,7 @@ PRINT '=== Seeding ClientInfo CRM Fields ===';
 -- Update Client 1 with CRM data
 UPDATE ClientInfo
 SET PersonalNotes = 'High-value wedding client, referred by wedding planner John Smith. Prefers formal communication.',
-    PreferredPhotographerUserID = 2,
+    PreferredPhotographerUserID = @PhotographerUserId,
     ReferralSource = 'Referral from John Smith',
     IsVIP = 1,
     LifetimeValue = 85000.00
@@ -635,7 +657,7 @@ WHERE ClientID = @Client1Id;
 -- Update Client 2 with CRM data
 UPDATE ClientInfo
 SET PersonalNotes = 'Portrait and events client. Very responsive and professional.',
-    PreferredPhotographerUserID = 2,
+    PreferredPhotographerUserID = @PhotographerUserId,
     ReferralSource = 'Instagram',
     IsVIP = 0,
     LifetimeValue = 12500.00
@@ -653,10 +675,9 @@ PRINT '=== Seeding Availability Windows ===';
 DECLARE @Today DATETIME = CAST(GETUTCDATE() AS DATE);
 
 -- Seed availability windows for photographers
-DECLARE @PhotographerId INT = 2; -- Photographer user ID
 EXEC usp_Availability_Upsert
     @Id = 0,
-    @PhotographerUserID = @PhotographerId,
+    @PhotographerUserID = @PhotographerUserId,
     @AvailabilityStart = @Today,
     @AvailabilityEnd = DATEADD(DAY, 90, @Today),
     @IsAvailable = 1,
@@ -918,13 +939,14 @@ SET IsPhotographer = 1,
     PreferredWorkingHours = '9am-6pm, Weekdays preferred'
 WHERE Email = 'admin@smartworkz.com';
 
+-- Update photographer with photographer-specific fields
 UPDATE Users
 SET IsPhotographer = 1,
     HourlyRate = 120.00,
     DailyRate = 950.00,
     MaxBookingsPerMonth = 12,
     PreferredWorkingHours = 'Flexible, Available weekends'
-WHERE Email IN (SELECT Email FROM Users WHERE UserID > 1 LIMIT 1);
+WHERE UserID = @PhotographerUserId;
 
 -- Verify Users have photographer fields populated
 PRINT 'Photographer profile data seeded: Users updated with HourlyRate, DailyRate, MaxBookingsPerMonth, PreferredWorkingHours';
