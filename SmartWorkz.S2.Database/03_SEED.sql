@@ -2324,3 +2324,172 @@ PRINT 'Pricing Rules seeded: 8 rules';
 
 -- Verify PricingRule records
 SELECT 'PricingRule' AS TableName, COUNT(*) AS ActiveRecords FROM PricingRule WHERE IsDeleted = 0;
+
+-- ============================================
+-- SEED DELIVERY PACKAGES (Gap #25)
+-- ============================================
+
+PRINT '=== Seeding Delivery Packages ===';
+
+DECLARE @SampleBookingID INT = 1;
+DECLARE @SampleAdminID INT = 1;
+DECLARE @DeliveryID INT;
+
+-- Check if sample booking exists, if not use the first available
+SELECT TOP 1 @SampleBookingID = BookingID FROM Booking WHERE IsDeleted = 0;
+
+-- If no bookings exist, create sample bookings first (for demo purposes)
+IF @SampleBookingID IS NULL
+BEGIN
+    -- Create minimal sample booking to demonstrate delivery packages
+    DECLARE @ClientID INT, @PackageID INT, @QuotationID INT, @PhotograpyerID INT;
+
+    -- Use existing users/packages/clients or create sample ones
+    SELECT TOP 1 @PhotograpyerID = UserID FROM Users WHERE IsPhotographer = 1 AND IsActive = 1;
+    SELECT TOP 1 @PackageID = PackageID FROM PhotographyPackage WHERE IsDeleted = 0 AND IsActive = 1;
+    SELECT TOP 1 @ClientID = ClientID FROM ClientInfo WHERE IsDeleted = 0;
+
+    IF @PackageID IS NOT NULL AND @ClientID IS NOT NULL AND @PhotograpyerID IS NOT NULL
+    BEGIN
+        -- Create a sample quotation
+        INSERT INTO Quotation (EventID, ClientEmail, ClientName, QuotationNumber, TotalAmount, Status, CreatedBy, CreatedAt)
+        SELECT TOP 1 1, c.Email, c.FullName, 'QUOT-' + FORMAT(GETUTCDATE(), 'yyyyMMddHHmmss'), 50000, 'Accepted', @SampleAdminID, GETUTCDATE()
+        FROM ClientInfo c WHERE c.ClientID = @ClientID;
+
+        SELECT @QuotationID = @@IDENTITY;
+
+        -- Create a sample booking
+        INSERT INTO Booking (PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Status, TotalPrice, CreatedBy, CreatedAt)
+        VALUES (@PackageID, @ClientID, @QuotationID, @PhotograpyerID, GETDATE(), 'Completed', 50000, @SampleAdminID, GETUTCDATE());
+
+        SELECT @SampleBookingID = @@IDENTITY;
+    END
+END
+
+-- Seed 10 delivery packages with various scenarios
+IF @SampleBookingID IS NOT NULL
+BEGIN
+    -- 1. Online Gallery - Completed (past delivery)
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'OnlineGallery',
+        @DeliveryDate = DATEADD(DAY, -10, GETUTCDATE()),
+        @DeliveryMethod = 'Download',
+        @DeliveryNotes = 'Gallery link shared via email with password access',
+        @IsCompleted = 1,
+        @CompletedAt = DATEADD(DAY, -9, GETUTCDATE()),
+        @CreatedBy = @SampleAdminID;
+
+    -- 2. Printed Album - Pending (scheduled for future)
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'PrintedAlbum',
+        @DeliveryDate = DATEADD(DAY, 15, GETUTCDATE()),
+        @DeliveryMethod = 'Physical',
+        @DeliveryNotes = 'Premium leather-bound album, 50 pages, 12x12 inches',
+        @IsCompleted = 0,
+        @CreatedBy = @SampleAdminID;
+
+    -- 3. USB Drive - Pending (past scheduled date, not yet completed)
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'USB',
+        @DeliveryDate = DATEADD(DAY, -5, GETUTCDATE()),
+        @DeliveryMethod = 'InPerson',
+        @DeliveryNotes = 'High-speed 32GB USB with all edited images in 2K resolution',
+        @IsCompleted = 0,
+        @CreatedBy = @SampleAdminID;
+
+    -- 4. Prints (24x36) - Completed
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'Prints',
+        @DeliveryDate = DATEADD(DAY, -7, GETUTCDATE()),
+        @DeliveryMethod = 'Physical',
+        @DeliveryNotes = '4 pieces large format prints (24x36 inches) on premium matte paper',
+        @IsCompleted = 1,
+        @CompletedAt = DATEADD(DAY, -6, GETUTCDATE()),
+        @CreatedBy = @SampleAdminID;
+
+    -- 5. Video Edited Master - Pending
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'VideoEditedMaster',
+        @DeliveryDate = DATEADD(DAY, 20, GETUTCDATE()),
+        @DeliveryMethod = 'Download',
+        @DeliveryNotes = 'Full event video, 2 hours, color graded, with music',
+        @IsCompleted = 0,
+        @CreatedBy = @SampleAdminID;
+
+    -- 6. RAW Files - Completed (urgent delivery)
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'RAWFiles',
+        @DeliveryDate = DATEADD(DAY, -20, GETUTCDATE()),
+        @DeliveryMethod = 'Download',
+        @DeliveryNotes = '1250 RAW files in DNG format via Dropbox link',
+        @IsCompleted = 1,
+        @CompletedAt = DATEADD(DAY, -19, GETUTCDATE()),
+        @CreatedBy = @SampleAdminID;
+
+    -- 7. BlueRay - Pending
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'BlueRay',
+        @DeliveryDate = DATEADD(DAY, 30, GETUTCDATE()),
+        @DeliveryMethod = 'Physical',
+        @DeliveryNotes = 'Dual-layer Blu-ray disc with menu, backup disc included',
+        @IsCompleted = 0,
+        @CreatedBy = @SampleAdminID;
+
+    -- 8. Proof Book - Completed
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'ProofBook',
+        @DeliveryDate = DATEADD(DAY, -15, GETUTCDATE()),
+        @DeliveryMethod = 'Email',
+        @DeliveryNotes = 'Digital proof sheet with 60 best images for client selection',
+        @IsCompleted = 1,
+        @CompletedAt = DATEADD(DAY, -14, GETUTCDATE()),
+        @CreatedBy = @SampleAdminID;
+
+    -- 9. Canvas Print - Pending (long lead time)
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'Canvas',
+        @DeliveryDate = DATEADD(DAY, 45, GETUTCDATE()),
+        @DeliveryMethod = 'Physical',
+        @DeliveryNotes = 'Premium stretched canvas, 36x48 inches, gallery-wrapped',
+        @IsCompleted = 0,
+        @CreatedBy = @SampleAdminID;
+
+    -- 10. Other Deliverable - Completed (custom item)
+    EXEC uspDeliveryPackageUpsert
+        @Id = 0,
+        @BookingID = @SampleBookingID,
+        @DeliverableType = 'Other',
+        @DeliveryDate = DATEADD(DAY, -3, GETUTCDATE()),
+        @DeliveryMethod = 'Email',
+        @DeliveryNotes = 'Custom client thank-you video montage',
+        @IsCompleted = 1,
+        @CompletedAt = DATEADD(DAY, -2, GETUTCDATE()),
+        @CreatedBy = @SampleAdminID;
+
+    PRINT 'Delivery Packages seeded: 10 packages (5 completed, 5 pending)';
+END
+ELSE
+BEGIN
+    PRINT 'Warning: No bookings found. Delivery Packages not seeded. Please create bookings first.';
+END
+
+-- Verify DeliveryPackage records
+SELECT 'DeliveryPackage' AS TableName, COUNT(*) AS ActiveRecords FROM DeliveryPackage WHERE IsDeleted = 0;

@@ -3834,3 +3834,151 @@ BEGIN
     SELECT @PricingRuleID AS PricingRuleID;
 END;
 
+-- ============================================
+-- DELIVERY PACKAGE PROCEDURES (Gap #25)
+-- ============================================
+
+CREATE PROCEDURE uspDeliveryPackageUpsert
+    @Id INT = 0,
+    @BookingID INT,
+    @DeliverableType NVARCHAR(100),
+    @DeliveryDate DATETIME = NULL,
+    @DeliveryMethod NVARCHAR(50),
+    @DeliveryNotes NVARCHAR(MAX) = NULL,
+    @IsCompleted BIT = 0,
+    @CompletedAt DATETIME = NULL,
+    @CreatedBy INT,
+    @UpdatedBy INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @Id = 0
+        INSERT INTO DeliveryPackage
+            (BookingID, DeliverableType, DeliveryDate, DeliveryMethod, DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedAt)
+        VALUES
+            (@BookingID, @DeliverableType, @DeliveryDate, @DeliveryMethod, @DeliveryNotes, @IsCompleted, @CompletedAt, @CreatedBy, GETUTCDATE(), GETUTCDATE());
+    ELSE
+        UPDATE DeliveryPackage
+        SET BookingID = @BookingID,
+            DeliverableType = @DeliverableType,
+            DeliveryDate = @DeliveryDate,
+            DeliveryMethod = @DeliveryMethod,
+            DeliveryNotes = @DeliveryNotes,
+            IsCompleted = @IsCompleted,
+            CompletedAt = @CompletedAt,
+            UpdatedBy = @UpdatedBy,
+            UpdatedAt = GETUTCDATE()
+        WHERE DeliveryPackageID = @Id AND IsDeleted = 0;
+
+    SELECT @@IDENTITY AS DeliveryPackageID;
+END;
+
+CREATE PROCEDURE uspDeliveryPackageRead
+    @DeliveryPackageID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        DeliveryPackageID, BookingID, DeliverableType, DeliveryDate, DeliveryMethod,
+        DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
+        UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    FROM DeliveryPackage
+    WHERE DeliveryPackageID = @DeliveryPackageID AND IsDeleted = 0;
+END;
+
+CREATE PROCEDURE uspDeliveryPackageReadAll
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        DeliveryPackageID, BookingID, DeliverableType, DeliveryDate, DeliveryMethod,
+        DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
+        UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    FROM DeliveryPackage
+    WHERE IsDeleted = 0
+    ORDER BY CreatedAt DESC;
+END;
+
+CREATE PROCEDURE uspDeliveryPackageReadPaged
+    @PageNumber INT = 1,
+    @PageSize INT = 10,
+    @BookingID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @OffSet INT = (@PageNumber - 1) * @PageSize;
+
+    SELECT
+        DeliveryPackageID, BookingID, DeliverableType, DeliveryDate, DeliveryMethod,
+        DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
+        UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    FROM DeliveryPackage
+    WHERE IsDeleted = 0
+        AND (@BookingID IS NULL OR BookingID = @BookingID)
+    ORDER BY CreatedAt DESC
+    OFFSET @OffSet ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+END;
+
+CREATE PROCEDURE uspDeliveryPackageGetByBooking
+    @BookingID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        DeliveryPackageID, BookingID, DeliverableType, DeliveryDate, DeliveryMethod,
+        DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
+        UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    FROM DeliveryPackage
+    WHERE BookingID = @BookingID AND IsDeleted = 0
+    ORDER BY CreatedAt DESC;
+END;
+
+CREATE PROCEDURE uspDeliveryPackageGetPending
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        DeliveryPackageID, BookingID, DeliverableType, DeliveryDate, DeliveryMethod,
+        DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
+        UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    FROM DeliveryPackage
+    WHERE IsCompleted = 0 AND IsDeleted = 0
+    ORDER BY DeliveryDate ASC, CreatedAt DESC;
+END;
+
+CREATE PROCEDURE uspDeliveryPackageGetByType
+    @DeliverableType NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        DeliveryPackageID, BookingID, DeliverableType, DeliveryDate, DeliveryMethod,
+        DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
+        UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    FROM DeliveryPackage
+    WHERE DeliverableType = @DeliverableType AND IsDeleted = 0
+    ORDER BY CreatedAt DESC;
+END;
+
+CREATE PROCEDURE uspDeliveryPackageDelete
+    @DeliveryPackageID INT,
+    @DeletedBy INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE DeliveryPackage
+    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy
+    WHERE DeliveryPackageID = @DeliveryPackageID AND IsDeleted = 0;
+
+    SELECT @DeliveryPackageID AS DeliveryPackageID;
+END;
+

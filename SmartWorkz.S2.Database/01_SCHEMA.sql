@@ -1208,6 +1208,43 @@ CREATE TABLE PricingRule (
 );
 
 -- ============================================
+-- CLIENT DELIVERABLES (Gap #25)
+-- ============================================
+
+CREATE TABLE DeliveryPackage (
+    DeliveryPackageID INT PRIMARY KEY IDENTITY(1,1),
+    BookingID INT NOT NULL,
+    DeliverableType NVARCHAR(100) NOT NULL,
+    DeliveryDate DATETIME,
+    DeliveryMethod NVARCHAR(50) NOT NULL,
+    DeliveryNotes NVARCHAR(MAX),
+    IsCompleted BIT DEFAULT 0,
+    CompletedAt DATETIME,
+    CreatedBy INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETUTCDATE(),
+    UpdatedBy INT,
+    UpdatedAt DATETIME DEFAULT GETUTCDATE(),
+    DeletedBy INT,
+    DeletedAt DATETIME,
+    IsDeleted BIT DEFAULT 0,
+    FOREIGN KEY (BookingID) REFERENCES Booking(BookingID),
+    FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
+    CHECK (DeliverableType IN ('OnlineGallery', 'PrintedAlbum', 'USB', 'Prints', 'VideoEditedMaster', 'RAWFiles', 'BlueRay', 'ProofBook', 'Canvas', 'Other')),
+    CHECK (DeliveryMethod IN ('Email', 'Download', 'Physical', 'InPerson')),
+    CHECK (IsDeleted IN (0, 1)),
+    CHECK (IsCompleted IN (0, 1)),
+    CHECK (IsCompleted = 0 OR CompletedAt IS NOT NULL),
+    INDEX IDX_DeliveryPackage_BookingID (BookingID),
+    INDEX IDX_DeliveryPackage_DeliverableType (DeliverableType),
+    INDEX IDX_DeliveryPackage_IsCompleted (IsCompleted),
+    INDEX IDX_DeliveryPackage_DeliveryDate (DeliveryDate),
+    INDEX IDX_DeliveryPackage_CreatedBy (CreatedBy),
+    INDEX IDX_DeliveryPackage_IsDeleted (IsDeleted)
+);
+
+-- ============================================
 -- CREATE INDEXES
 -- ============================================
 
@@ -1290,3 +1327,4 @@ CREATE INDEX IDX_SEOMetadata_IsDeleted ON SEOMetadata(IsDeleted);
 CREATE INDEX IDX_PortfolioShowcase_IsDeleted ON PortfolioShowcase(IsDeleted);
 CREATE INDEX IDX_EmailTemplate_IsDeleted ON EmailTemplate(IsDeleted);
 CREATE INDEX IDX_PricingRule_IsDeleted ON PricingRule(IsDeleted);
+CREATE INDEX IDX_DeliveryPackage_IsDeleted ON DeliveryPackage(IsDeleted);
