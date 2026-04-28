@@ -3678,35 +3678,45 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF @Id = 0
-    BEGIN
-        INSERT INTO PricingRule (
-            RuleName, ServiceCategory, RuleType, AdjustmentType, AdjustmentValue,
-            EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedAt
-        ) VALUES (
-            @RuleName, @ServiceCategory, @RuleType, @AdjustmentType, @AdjustmentValue,
-            @EffectiveFrom, @EffectiveTo, @IsActive, @CreatedBy, GETUTCDATE(), GETUTCDATE()
-        );
+    BEGIN TRY
+        BEGIN TRANSACTION;
 
-        SELECT CAST(SCOPE_IDENTITY() AS INT) AS PricingRuleID;
-    END
-    ELSE
-    BEGIN
-        UPDATE PricingRule
-        SET RuleName = @RuleName,
-            ServiceCategory = @ServiceCategory,
-            RuleType = @RuleType,
-            AdjustmentType = @AdjustmentType,
-            AdjustmentValue = @AdjustmentValue,
-            EffectiveFrom = @EffectiveFrom,
-            EffectiveTo = @EffectiveTo,
-            IsActive = @IsActive,
-            UpdatedBy = @UpdatedBy,
-            UpdatedAt = GETUTCDATE()
-        WHERE PricingRuleID = @Id AND IsDeleted = 0;
+        IF @Id = 0
+        BEGIN
+            INSERT INTO PricingRule (
+                RuleName, ServiceCategory, RuleType, AdjustmentType, AdjustmentValue,
+                EffectiveFrom, EffectiveTo, IsActive, CreatedBy, UpdatedBy, CreatedAt, UpdatedAt
+            ) VALUES (
+                @RuleName, @ServiceCategory, @RuleType, @AdjustmentType, @AdjustmentValue,
+                @EffectiveFrom, @EffectiveTo, @IsActive, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE()
+            );
 
-        SELECT @Id AS PricingRuleID;
-    END
+            SELECT CAST(SCOPE_IDENTITY() AS INT) AS PricingRuleID;
+        END
+        ELSE
+        BEGIN
+            UPDATE PricingRule
+            SET RuleName = @RuleName,
+                ServiceCategory = @ServiceCategory,
+                RuleType = @RuleType,
+                AdjustmentType = @AdjustmentType,
+                AdjustmentValue = @AdjustmentValue,
+                EffectiveFrom = @EffectiveFrom,
+                EffectiveTo = @EffectiveTo,
+                IsActive = @IsActive,
+                UpdatedBy = @UpdatedBy,
+                UpdatedAt = GETUTCDATE()
+            WHERE PricingRuleID = @Id AND IsDeleted = 0;
+
+            SELECT @Id AS PricingRuleID;
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
 END;
 
 CREATE PROCEDURE uspPricingRuleRead
@@ -3733,7 +3743,7 @@ BEGIN
         EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
         DeletedBy, DeletedAt, IsDeleted
     FROM PricingRule
-    WHERE IsActive = 1 AND IsDeleted = 0
+    WHERE IsDeleted = 0
     ORDER BY RuleName ASC;
 END;
 
@@ -3805,7 +3815,8 @@ BEGIN
         DeletedBy, DeletedAt, IsDeleted
     FROM PricingRule
     WHERE IsActive = 1 AND IsDeleted = 0
-        AND (@Date >= ISNULL(EffectiveFrom, @Date) AND @Date <= ISNULL(EffectiveTo, @Date))
+        AND (EffectiveFrom IS NULL OR @Date >= EffectiveFrom)
+        AND (EffectiveTo IS NULL OR @Date <= EffectiveTo)
     ORDER BY RuleName ASC;
 END;
 

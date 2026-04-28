@@ -1196,7 +1196,7 @@ CREATE TABLE PricingRule (
     CHECK (ServiceCategory IN ('Wedding', 'Portrait', 'Events', 'Video', 'Corporate', 'Other', NULL)),
     CHECK (RuleType IN ('Weekend', 'Holiday', 'Rush', 'Evening', 'Overnight', 'GroupDiscount', 'EarlyBird', 'Other')),
     CHECK (AdjustmentType IN ('Percentage', 'FixedAmount')),
-    CHECK (AdjustmentValue > 0),
+    CHECK (AdjustmentValue != 0),
     CHECK (IsDeleted IN (0, 1)),
     CHECK (EffectiveFrom IS NULL OR EffectiveTo IS NULL OR EffectiveFrom <= EffectiveTo),
     INDEX IDX_PricingRule_ServiceCategory (ServiceCategory),
