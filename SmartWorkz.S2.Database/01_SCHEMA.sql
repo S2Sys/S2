@@ -24,6 +24,31 @@ CREATE TABLE Branch (
 );
 
 -- ============================================
+-- LOOKUP TYPE TABLE (Hierarchical Enum Replacement)
+-- ============================================
+
+CREATE TABLE LookupType (
+    LookupTypeID INT PRIMARY KEY IDENTITY(1,1),
+    LookupCategory NVARCHAR(100) NOT NULL,
+    LookupValue NVARCHAR(255) NOT NULL,
+    DisplayLabel NVARCHAR(500),
+    ParentLookupTypeID INT NULL,
+    DisplayOrder INT DEFAULT 0,
+    IsActive BIT DEFAULT 1,
+    RowState NVARCHAR(50) DEFAULT 'Active',
+    CreatedAt DATETIME DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME DEFAULT GETUTCDATE(),
+    FOREIGN KEY (ParentLookupTypeID) REFERENCES LookupType(LookupTypeID),
+    UNIQUE (LookupCategory, LookupValue),
+    CHECK (RowState IN ('Active', 'Inactive', 'Deleted')),
+    INDEX IDX_LookupType_Category (LookupCategory),
+    INDEX IDX_LookupType_Value (LookupValue),
+    INDEX IDX_LookupType_ParentID (ParentLookupTypeID),
+    INDEX IDX_LookupType_IsActive (IsActive),
+    INDEX IDX_LookupType_RowState (RowState)
+);
+
+-- ============================================
 -- AUTHENTICATION & AUTHORIZATION
 -- ============================================
 
@@ -92,7 +117,7 @@ CREATE TABLE Event (
     Location NVARCHAR(500),
     Description NVARCHAR(MAX),
     Status NVARCHAR(50) DEFAULT 'Scheduled',
-    EventType NVARCHAR(100),
+    EventTypeID INT,
     CreatedBy INT NOT NULL,
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedBy INT,
@@ -101,11 +126,11 @@ CREATE TABLE Event (
     FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (EventTypeID) REFERENCES LookupType(LookupTypeID),
     CHECK (Status IN ('Scheduled', 'In Progress', 'Completed', 'Cancelled')),
-    CONSTRAINT CHK_Event_EventType CHECK (EventType IN ('Wedding', 'Portrait', 'Corporate', 'Personal', 'Other')),
     CONSTRAINT CHK_Event_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_Event_UpdatedBy (UpdatedBy),
-    INDEX IDX_Event_EventType (EventType),
+    INDEX IDX_Event_EventTypeID (EventTypeID),
     INDEX IDX_Event_RowState (RowState),
     INDEX IDX_Event_BranchID (BranchID)
 );
@@ -157,10 +182,10 @@ CREATE TABLE Communication (
     -- Message content
     Subject NVARCHAR(255),
     Message NVARCHAR(MAX) NOT NULL,
-    MessageType NVARCHAR(50) NOT NULL,    -- Email, SMS, Note, InApp
+    MessageTypeID INT NOT NULL,
 
     -- Status tracking
-    Status NVARCHAR(50) DEFAULT 'Sent',   -- Sent, Delivered, Read, Failed, Pending
+    StatusID INT,
 
     -- Metadata
     IsInternal BIT DEFAULT 0,             -- Internal note only, not sent to client
@@ -184,21 +209,22 @@ CREATE TABLE Communication (
     FOREIGN KEY (ToClientID) REFERENCES ClientInfo(ClientID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (MessageTypeID) REFERENCES LookupType(LookupTypeID),
+    FOREIGN KEY (StatusID) REFERENCES LookupType(LookupTypeID),
 
     -- Constraints
     CONSTRAINT CHK_Communication_EntityType CHECK (EntityType IN ('Event', 'Booking', 'Quotation', 'Invoice', 'Gallery', 'Package', 'Payment')),
-    CONSTRAINT CHK_Communication_MessageType CHECK (MessageType IN ('Email', 'SMS', 'Note', 'InApp')),
-    CONSTRAINT CHK_Communication_Status CHECK (Status IN ('Pending', 'Sent', 'Delivered', 'Read', 'Failed')),
     CONSTRAINT CHK_Communication_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
 
     -- Indexes for common queries
     INDEX IDX_Communication_EntityType (EntityType, EntityID),
     INDEX IDX_Communication_ToEmail (ToEmail),
-    INDEX IDX_Communication_Status (Status),
+    INDEX IDX_Communication_StatusID (StatusID),
     INDEX IDX_Communication_CreatedAt (CreatedAt),
     INDEX IDX_Communication_RowState (RowState),
     INDEX IDX_Communication_FromUserID (FromUserID),
-    INDEX IDX_Communication_ToClientID (ToClientID)
+    INDEX IDX_Communication_ToClientID (ToClientID),
+    INDEX IDX_Communication_MessageTypeID (MessageTypeID)
 );
 
 -- ============================================
@@ -388,7 +414,7 @@ CREATE TABLE Gallery (
     RotationSpeed INT DEFAULT 5,
     StartDate DATETIME,
     EndDate DATETIME,
-    ReviewStatus NVARCHAR(50) DEFAULT 'Draft',
+    ReviewStatusID INT,
     ClientApprovalDeadline DATETIME,
     ApprovedByUserID INT,
     CreatedBy INT,
@@ -405,12 +431,12 @@ CREATE TABLE Gallery (
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (ApprovedByUserID) REFERENCES Users(UserID),
     FOREIGN KEY (AssignedToPhotographerUserID) REFERENCES Users(UserID),
+    FOREIGN KEY (ReviewStatusID) REFERENCES LookupType(LookupTypeID),
     -- Private galleries must be tied to an event for client access control
     CONSTRAINT CHK_Gallery_PrivateEventID CHECK ((IsPrivate = 0) OR (IsPrivate = 1 AND EventID IS NOT NULL)),
-    CONSTRAINT CHK_Gallery_ReviewStatus CHECK (ReviewStatus IN ('Draft', 'UnderReview', 'ApprovedByClient', 'ReadyForDelivery', 'Delivered')),
     CONSTRAINT CHK_Gallery_RowState CHECK (RowState IN ('Active', 'Draft', 'PendingApproval', 'Published', 'Archived', 'Deleted')),
     INDEX IDX_Gallery_UpdatedBy (UpdatedBy),
-    INDEX IDX_Gallery_ReviewStatus (ReviewStatus),
+    INDEX IDX_Gallery_ReviewStatusID (ReviewStatusID),
     INDEX IDX_Gallery_RowState (RowState),
     INDEX IDX_Gallery_AssignedToPhotographer (AssignedToPhotographerUserID),
     INDEX IDX_Gallery_BranchID (BranchID)
@@ -427,18 +453,18 @@ CREATE TABLE GalleryAsset (
     Caption NVARCHAR(500),
     DurationMinutes INT,
     DisplayOrder INT DEFAULT 0,
-    AssetStatus NVARCHAR(50) DEFAULT 'Original',
+    AssetStatusID INT,
     RetouchNotes NVARCHAR(MAX),
     CreatedBy INT NOT NULL,
     UploadedAt DATETIME DEFAULT GETUTCDATE(),
     RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (GalleryID) REFERENCES Gallery(GalleryID) ON DELETE CASCADE,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
-    CONSTRAINT CHK_GalleryAsset_AssetStatus CHECK (AssetStatus IN ('Original', 'Retouched', 'Final', 'Archived', 'Rejected')),
+    FOREIGN KEY (AssetStatusID) REFERENCES LookupType(LookupTypeID),
     CONSTRAINT CHK_GalleryAsset_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_GalleryAsset_GalleryIDAssetType (GalleryID, AssetType),
     INDEX IDX_GalleryAsset_CreatedBy (CreatedBy),
-    INDEX IDX_GalleryAsset_AssetStatus (AssetStatus),
+    INDEX IDX_GalleryAsset_AssetStatusID (AssetStatusID),
     INDEX IDX_GalleryAsset_RowState (RowState)
 );
 
@@ -477,7 +503,7 @@ CREATE TABLE PhotographyPackage (
     IncludedRetouching BIT DEFAULT 0,
     RetouchingLevel NVARCHAR(50),
     IncludedSecondPhotographer BIT DEFAULT 0,
-    ServiceCategory NVARCHAR(100),
+    ServiceCategoryID INT,
     IsActive BIT DEFAULT 1,
     IsFeatured BIT DEFAULT 0,
     DisplayOrder INT DEFAULT 0,
@@ -489,11 +515,11 @@ CREATE TABLE PhotographyPackage (
     FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    CONSTRAINT CHK_PhotographyPackage_ServiceCategory CHECK (ServiceCategory IN ('Wedding', 'Portrait', 'Events', 'Video', 'Corporate', 'Other')),
+    FOREIGN KEY (ServiceCategoryID) REFERENCES LookupType(LookupTypeID),
     CONSTRAINT CHK_PhotographyPackage_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_PhotographyPackage_CreatedBy (CreatedBy),
     INDEX IDX_PhotographyPackage_UpdatedBy (UpdatedBy),
-    INDEX IDX_PhotographyPackage_ServiceCategory (ServiceCategory),
+    INDEX IDX_PhotographyPackage_ServiceCategoryID (ServiceCategoryID),
     INDEX IDX_PhotographyPackage_RowState (RowState),
     INDEX IDX_PhotographyPackage_BranchID (BranchID)
 );
@@ -665,7 +691,7 @@ CREATE TABLE Booking (
     PhotographerUserID INT NOT NULL,
     BookingDate DATETIME NOT NULL,
     Location NVARCHAR(500),
-    Status NVARCHAR(50) DEFAULT 'Confirmed',
+    StatusID INT,
     TotalPrice DECIMAL(10,2) NOT NULL,
     DepositAmount DECIMAL(10,2),
     DepositPaid BIT DEFAULT 0,
@@ -690,7 +716,7 @@ CREATE TABLE Booking (
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (LocationFeeID) REFERENCES LocationFee(LocationFeeID),
-    CHECK (Status IN ('Confirmed', 'Scheduled', 'Completed', 'Cancelled')),
+    FOREIGN KEY (StatusID) REFERENCES LookupType(LookupTypeID),
     -- Deposit is either not collected upfront (NULL) or cannot exceed total booking price
     CONSTRAINT CHK_Booking_DepositAmount CHECK (DepositAmount IS NULL OR DepositAmount <= TotalPrice),
     CONSTRAINT CHK_Booking_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Completed', 'Cancelled', 'Deleted')),
@@ -698,7 +724,8 @@ CREATE TABLE Booking (
     INDEX IDX_Booking_UpdatedBy (UpdatedBy),
     INDEX IDX_Booking_RowState (RowState),
     INDEX IDX_Booking_LocationFeeID (LocationFeeID),
-    INDEX IDX_Booking_BranchID (BranchID)
+    INDEX IDX_Booking_BranchID (BranchID),
+    INDEX IDX_Booking_StatusID (StatusID)
 );
 
 CREATE TABLE BookingPackage (
@@ -852,7 +879,7 @@ CREATE TABLE Invoice (
     Amount DECIMAL(10,2) NOT NULL,
     TaxAmount DECIMAL(10,2) DEFAULT 0,
     TotalAmount DECIMAL(10,2) NOT NULL,
-    Status NVARCHAR(50) DEFAULT 'Draft',
+    StatusID INT,
     IssuedDate DATETIME,
     DueDate DATETIME,
     PaidDate DATETIME,
@@ -868,13 +895,14 @@ CREATE TABLE Invoice (
     FOREIGN KEY (QuotationID) REFERENCES Quotation(QuotationID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    CHECK (Status IN ('Draft', 'Issued', 'Sent', 'Partially Paid', 'Paid', 'Overdue')),
+    FOREIGN KEY (StatusID) REFERENCES LookupType(LookupTypeID),
     CONSTRAINT CHK_Invoice_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Deleted')),
     INDEX IDX_Invoice_ClientID (ClientID),
     INDEX IDX_Invoice_CreatedBy (CreatedBy),
     INDEX IDX_Invoice_UpdatedBy (UpdatedBy),
     INDEX IDX_Invoice_RowState (RowState),
-    INDEX IDX_Invoice_BranchID (BranchID)
+    INDEX IDX_Invoice_BranchID (BranchID),
+    INDEX IDX_Invoice_StatusID (StatusID)
 );
 
 -- ============================================
@@ -1150,7 +1178,7 @@ CREATE TABLE PortfolioShowcase (
 CREATE TABLE EmailTemplate (
     TemplateID INT PRIMARY KEY IDENTITY(1,1),
     TemplateName NVARCHAR(255) NOT NULL UNIQUE,
-    TemplateType NVARCHAR(50) NOT NULL,
+    TemplateTypeID INT NOT NULL,
     Subject NVARCHAR(500) NOT NULL,
     HtmlBody NVARCHAR(MAX) NOT NULL,
     PlaceholderVariables NVARCHAR(500),
@@ -1162,9 +1190,9 @@ CREATE TABLE EmailTemplate (
     RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    CONSTRAINT CHK_EmailTemplate_TemplateType CHECK (TemplateType IN ('Invitation', 'Confirmation', 'Reminder', 'Notification', 'Receipt', 'Invoice', 'Other')),
+    FOREIGN KEY (TemplateTypeID) REFERENCES LookupType(LookupTypeID),
     CONSTRAINT CHK_EmailTemplate_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
-    INDEX IDX_EmailTemplate_TemplateType (TemplateType),
+    INDEX IDX_EmailTemplate_TemplateTypeID (TemplateTypeID),
     INDEX IDX_EmailTemplate_IsActive (IsActive),
     INDEX IDX_EmailTemplate_CreatedBy (CreatedBy),
     INDEX IDX_EmailTemplate_RowState (RowState)
@@ -1203,9 +1231,9 @@ CREATE TABLE ContractTemplate (
 CREATE TABLE PricingRule (
     PricingRuleID INT PRIMARY KEY IDENTITY(1,1),
     RuleName NVARCHAR(255) NOT NULL UNIQUE,
-    ServiceCategory NVARCHAR(100),
-    RuleType NVARCHAR(50) NOT NULL,
-    AdjustmentType NVARCHAR(50) NOT NULL,
+    ServiceCategoryID INT,
+    RuleTypeID INT NOT NULL,
+    AdjustmentTypeID INT NOT NULL,
     AdjustmentValue DECIMAL(10,2) NOT NULL,
     EffectiveFrom DATETIME,
     EffectiveTo DATETIME,
@@ -1217,18 +1245,19 @@ CREATE TABLE PricingRule (
     RowState NVARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    CHECK (ServiceCategory IN ('Wedding', 'Portrait', 'Events', 'Video', 'Corporate', 'Other', NULL)),
-    CHECK (RuleType IN ('Weekend', 'Holiday', 'Rush', 'Evening', 'Overnight', 'GroupDiscount', 'EarlyBird', 'Other')),
-    CHECK (AdjustmentType IN ('Percentage', 'FixedAmount')),
+    FOREIGN KEY (ServiceCategoryID) REFERENCES LookupType(LookupTypeID),
+    FOREIGN KEY (RuleTypeID) REFERENCES LookupType(LookupTypeID),
+    FOREIGN KEY (AdjustmentTypeID) REFERENCES LookupType(LookupTypeID),
     CHECK (AdjustmentValue != 0),
     CHECK (EffectiveFrom IS NULL OR EffectiveTo IS NULL OR EffectiveFrom <= EffectiveTo),
     CONSTRAINT CHK_PricingRule_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
-    INDEX IDX_PricingRule_ServiceCategory (ServiceCategory),
-    INDEX IDX_PricingRule_RuleType (RuleType),
+    INDEX IDX_PricingRule_ServiceCategoryID (ServiceCategoryID),
+    INDEX IDX_PricingRule_RuleTypeID (RuleTypeID),
     INDEX IDX_PricingRule_IsActive (IsActive),
     INDEX IDX_PricingRule_EffectiveFrom (EffectiveFrom),
     INDEX IDX_PricingRule_CreatedBy (CreatedBy),
-    INDEX IDX_PricingRule_RowState (RowState)
+    INDEX IDX_PricingRule_RowState (RowState),
+    INDEX IDX_PricingRule_AdjustmentTypeID (AdjustmentTypeID)
 );
 
 -- ============================================
@@ -1238,9 +1267,9 @@ CREATE TABLE PricingRule (
 CREATE TABLE DeliveryPackage (
     DeliveryPackageID INT PRIMARY KEY IDENTITY(1,1),
     BookingID INT NOT NULL,
-    DeliverableType NVARCHAR(100) NOT NULL,
+    DeliverableTypeID INT NOT NULL,
     DeliveryDate DATETIME,
-    DeliveryMethod NVARCHAR(50) NOT NULL,
+    DeliveryMethodID INT NOT NULL,
     DeliveryNotes NVARCHAR(MAX),
     IsCompleted BIT DEFAULT 0,
     CompletedAt DATETIME,
@@ -1252,17 +1281,18 @@ CREATE TABLE DeliveryPackage (
     FOREIGN KEY (BookingID) REFERENCES Booking(BookingID),
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
-    CHECK (DeliverableType IN ('OnlineGallery', 'PrintedAlbum', 'USB', 'Prints', 'VideoEditedMaster', 'RAWFiles', 'BlueRay', 'ProofBook', 'Canvas', 'Other')),
-    CHECK (DeliveryMethod IN ('Email', 'Download', 'Physical', 'InPerson')),
+    FOREIGN KEY (DeliverableTypeID) REFERENCES LookupType(LookupTypeID),
+    FOREIGN KEY (DeliveryMethodID) REFERENCES LookupType(LookupTypeID),
     CHECK (IsCompleted IN (0, 1)),
     CHECK (IsCompleted = 0 OR CompletedAt IS NOT NULL),
     CONSTRAINT CHK_DeliveryPackage_RowState CHECK (RowState IN ('Active', 'Pending', 'Approved', 'Archived', 'Deleted')),
     INDEX IDX_DeliveryPackage_BookingID (BookingID),
-    INDEX IDX_DeliveryPackage_DeliverableType (DeliverableType),
+    INDEX IDX_DeliveryPackage_DeliverableTypeID (DeliverableTypeID),
     INDEX IDX_DeliveryPackage_IsCompleted (IsCompleted),
     INDEX IDX_DeliveryPackage_DeliveryDate (DeliveryDate),
     INDEX IDX_DeliveryPackage_CreatedBy (CreatedBy),
-    INDEX IDX_DeliveryPackage_RowState (RowState)
+    INDEX IDX_DeliveryPackage_RowState (RowState),
+    INDEX IDX_DeliveryPackage_DeliveryMethodID (DeliveryMethodID)
 );
 
 -- ============================================

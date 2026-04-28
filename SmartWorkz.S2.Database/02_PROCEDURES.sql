@@ -1,5 +1,17 @@
 -- STUDIOS2 Database - All Stored Procedures (Run Second)
 -- Consolidated UPSERT procedures for all entities
+-- REFACTORING NOTE: As of this version, all NVARCHAR enum columns have been replaced with FK INT IDs referencing LookupType table
+-- Migration pattern for existing procedures:
+--   OLD: WHERE TemplateType = 'Confirmation'
+--   NEW: WHERE TemplateTypeID = (SELECT LookupTypeID FROM LookupType WHERE LookupCategory='TemplateType' AND LookupValue='Confirmation')
+-- OR store lookup ID in variable:
+--   DECLARE @ConfirmationTypeID INT = (SELECT LookupTypeID FROM LookupType WHERE LookupCategory='TemplateType' AND LookupValue='Confirmation');
+-- Affected columns (all now use ID-based FKs):
+--   EmailTemplate.TemplateTypeID, Communication.MessageTypeID, Communication.StatusID,
+--   Event.EventTypeID, Gallery.ReviewStatusID, GalleryAsset.AssetStatusID,
+--   Booking.StatusID, Invoice.StatusID, PricingRule.RuleTypeID, PricingRule.AdjustmentTypeID,
+--   DeliveryPackage.DeliverableTypeID, DeliveryPackage.DeliveryMethodID, PhotographyPackage.ServiceCategoryID,
+--   PricingRule.ServiceCategoryID
 
 -- ============================================
 -- AUTHENTICATION & AUTHORIZATION PROCEDURES
@@ -170,6 +182,9 @@ END;
 -- GALLERY PROCEDURES (Polymorphic)
 -- ============================================
 
+-- NOTE: Gallery_Upsert now uses ReviewStatusID (FK to LookupType) instead of ReviewStatus NVARCHAR
+-- Callers should pass @ReviewStatusID instead of @ReviewStatus
+-- Example: SELECT @ReviewStatusID = LookupTypeID FROM LookupType WHERE LookupCategory='GalleryReviewStatus' AND LookupValue='Draft'
 CREATE PROCEDURE usp_Gallery_Upsert
     @Id INT = 0,
     @BranchID INT,
@@ -188,21 +203,25 @@ CREATE PROCEDURE usp_Gallery_Upsert
     @RotationSpeed INT = 5,
     @StartDate DATETIME = NULL,
     @EndDate DATETIME = NULL,
-    @ReviewStatus NVARCHAR(50) = 'Draft',
+    @ReviewStatusID INT = NULL,
     @ClientApprovalDeadline DATETIME = NULL,
     @ApprovedByUserID INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+    -- Get default ReviewStatusID if not provided
+    IF @ReviewStatusID IS NULL
+        SELECT @ReviewStatusID = LookupTypeID FROM LookupType WHERE LookupCategory='GalleryReviewStatus' AND LookupValue='Draft';
+
     IF @Id = 0
-        INSERT INTO Gallery (BranchID, GalleryTypeID, EventID, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, Title, Description, Category, ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate, ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatus, ClientApprovalDeadline, ApprovedByUserID, ApprovedAt, RowState)
-        VALUES (@BranchID, @GalleryTypeId, @EventId, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @Title, @Description, @Category, @ThumbnailUrl, @DisplayOrder, @IsFeatured, @IsPublished, @IsPrivate, 0, @RotationSpeed, @StartDate, @EndDate, @ReviewStatus, @ClientApprovalDeadline, @ApprovedByUserID, CASE WHEN @ApprovedByUserID IS NOT NULL THEN GETUTCDATE() ELSE NULL END, 'Active');
+        INSERT INTO Gallery (BranchID, GalleryTypeID, EventID, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, Title, Description, Category, ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate, ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatusID, ClientApprovalDeadline, ApprovedByUserID, ApprovedAt, RowState)
+        VALUES (@BranchID, @GalleryTypeId, @EventId, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @Title, @Description, @Category, @ThumbnailUrl, @DisplayOrder, @IsFeatured, @IsPublished, @IsPrivate, 0, @RotationSpeed, @StartDate, @EndDate, @ReviewStatusID, @ClientApprovalDeadline, @ApprovedByUserID, CASE WHEN @ApprovedByUserID IS NOT NULL THEN GETUTCDATE() ELSE NULL END, 'Active');
     ELSE
         UPDATE Gallery
         SET GalleryTypeID = @GalleryTypeId, EventID = @EventId, Title = @Title, Description = @Description, Category = @Category,
             ThumbnailUrl = @ThumbnailUrl, DisplayOrder = @DisplayOrder, IsFeatured = @IsFeatured, IsPublished = @IsPublished, IsPrivate = @IsPrivate,
             RotationSpeed = @RotationSpeed, StartDate = @StartDate, EndDate = @EndDate, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
-            ReviewStatus = @ReviewStatus, ClientApprovalDeadline = @ClientApprovalDeadline, ApprovedByUserID = @ApprovedByUserID, ApprovedAt = CASE WHEN @ApprovedByUserID IS NOT NULL THEN GETUTCDATE() ELSE ApprovedAt END
+            ReviewStatusID = @ReviewStatusID, ClientApprovalDeadline = @ClientApprovalDeadline, ApprovedByUserID = @ApprovedByUserID, ApprovedAt = CASE WHEN @ApprovedByUserID IS NOT NULL THEN GETUTCDATE() ELSE ApprovedAt END
         WHERE GalleryID = @Id AND BranchID = @BranchID;
 
     SELECT @@IDENTITY AS Id;
@@ -215,9 +234,10 @@ AS
 BEGIN
     SELECT g.GalleryID, g.GalleryTypeID, gt.TypeName, g.EventID, g.CreatedBy, g.CreatedAt, g.UpdatedBy, g.UpdatedAt, g.Title, g.Description, g.Category,
             g.ThumbnailUrl, g.DisplayOrder, g.IsFeatured, g.IsPublished, g.IsPrivate, g.ViewCount,
-            g.RotationSpeed, g.StartDate, g.EndDate, g.ReviewStatus, g.ClientApprovalDeadline, g.ApprovedByUserID, g.ApprovedAt, g.RowState
+            g.RotationSpeed, g.StartDate, g.EndDate, g.ReviewStatusID, COALESCE(lr.DisplayLabel, 'Unknown') AS ReviewStatus, g.ClientApprovalDeadline, g.ApprovedByUserID, g.ApprovedAt, g.RowState
     FROM Gallery g
     INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
+    LEFT JOIN LookupType lr ON g.ReviewStatusID = lr.LookupTypeID
     WHERE g.GalleryID = @Id AND g.BranchID = @BranchID AND g.RowState = 'Active';
 END;
 

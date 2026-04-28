@@ -24,6 +24,175 @@ SELECT @Branch2Id = BranchID FROM Branch WHERE BranchName = 'Studio - Los Angele
 PRINT 'Branch master data seeded: HQ=' + CAST(@HeadquartersBranchId AS VARCHAR) + ', Branch2=' + CAST(@Branch2Id AS VARCHAR);
 
 -- ============================================
+-- SEED LOOKUP TYPES (Hierarchical Enum Values)
+-- ============================================
+
+PRINT '=== Seeding Lookup Types ===';
+
+DECLARE @TemplateTypeParentId INT, @RuleTypeParentId INT, @ServiceCategoryParentId INT, @MessageTypeParentId INT;
+DECLARE @BookingStatusParentId INT, @InvoiceStatusParentId INT, @EventTypeParentId INT, @GalleryReviewStatusParentId INT;
+DECLARE @GalleryAssetStatusParentId INT, @DeliverableTypeParentId INT, @DeliveryMethodParentId INT, @AdjustmentTypeParentId INT;
+
+-- Insert ROOT categories
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('ROOT', 'TemplateType', 'Email Template Types', NULL, 1, 1, 'Active'),
+    ('ROOT', 'RuleType', 'Pricing Rule Types', NULL, 2, 1, 'Active'),
+    ('ROOT', 'ServiceCategory', 'Service Categories', NULL, 3, 1, 'Active'),
+    ('ROOT', 'MessageType', 'Communication Message Types', NULL, 4, 1, 'Active'),
+    ('ROOT', 'BookingStatus', 'Booking Status Values', NULL, 5, 1, 'Active'),
+    ('ROOT', 'InvoiceStatus', 'Invoice Status Values', NULL, 6, 1, 'Active'),
+    ('ROOT', 'EventType', 'Event Type Categories', NULL, 7, 1, 'Active'),
+    ('ROOT', 'GalleryReviewStatus', 'Gallery Review Status', NULL, 8, 1, 'Active'),
+    ('ROOT', 'GalleryAssetStatus', 'Asset Status Values', NULL, 9, 1, 'Active'),
+    ('ROOT', 'DeliverableType', 'Deliverable Type Categories', NULL, 10, 1, 'Active'),
+    ('ROOT', 'DeliveryMethod', 'Delivery Method Types', NULL, 11, 1, 'Active'),
+    ('ROOT', 'AdjustmentType', 'Price Adjustment Types', NULL, 12, 1, 'Active'),
+    ('ROOT', 'CommunicationStatus', 'Communication Status Values', NULL, 13, 1, 'Active');
+
+-- Get parent IDs for use in child inserts
+SELECT @TemplateTypeParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'TemplateType';
+SELECT @RuleTypeParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'RuleType';
+SELECT @ServiceCategoryParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'ServiceCategory';
+SELECT @MessageTypeParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'MessageType';
+SELECT @BookingStatusParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'BookingStatus';
+SELECT @InvoiceStatusParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'InvoiceStatus';
+SELECT @EventTypeParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'EventType';
+SELECT @GalleryReviewStatusParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'GalleryReviewStatus';
+SELECT @GalleryAssetStatusParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'GalleryAssetStatus';
+SELECT @DeliverableTypeParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'DeliverableType';
+SELECT @DeliveryMethodParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'DeliveryMethod';
+SELECT @AdjustmentTypeParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'AdjustmentType';
+
+-- TemplateType children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('TemplateType', 'Invitation', 'Event Invitation', @TemplateTypeParentId, 1, 1, 'Active'),
+    ('TemplateType', 'Confirmation', 'Booking Confirmation', @TemplateTypeParentId, 2, 1, 'Active'),
+    ('TemplateType', 'Reminder', 'Event Reminder', @TemplateTypeParentId, 3, 1, 'Active'),
+    ('TemplateType', 'Notification', 'General Notification', @TemplateTypeParentId, 4, 1, 'Active'),
+    ('TemplateType', 'Receipt', 'Payment Receipt', @TemplateTypeParentId, 5, 1, 'Active'),
+    ('TemplateType', 'Invoice', 'Invoice Template', @TemplateTypeParentId, 6, 1, 'Active'),
+    ('TemplateType', 'Other', 'Other Template', @TemplateTypeParentId, 7, 1, 'Active');
+
+-- RuleType children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('RuleType', 'Weekend', 'Weekend Surcharge', @RuleTypeParentId, 1, 1, 'Active'),
+    ('RuleType', 'Holiday', 'Holiday Premium', @RuleTypeParentId, 2, 1, 'Active'),
+    ('RuleType', 'Rush', 'Rush Booking', @RuleTypeParentId, 3, 1, 'Active'),
+    ('RuleType', 'Evening', 'Evening Session', @RuleTypeParentId, 4, 1, 'Active'),
+    ('RuleType', 'Overnight', 'Overnight Coverage', @RuleTypeParentId, 5, 1, 'Active'),
+    ('RuleType', 'GroupDiscount', 'Group Booking Discount', @RuleTypeParentId, 6, 1, 'Active'),
+    ('RuleType', 'EarlyBird', 'Early Bird Discount', @RuleTypeParentId, 7, 1, 'Active'),
+    ('RuleType', 'Other', 'Other Rule Type', @RuleTypeParentId, 8, 1, 'Active');
+
+-- ServiceCategory children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('ServiceCategory', 'Wedding', 'Wedding Photography', @ServiceCategoryParentId, 1, 1, 'Active'),
+    ('ServiceCategory', 'Portrait', 'Portrait Sessions', @ServiceCategoryParentId, 2, 1, 'Active'),
+    ('ServiceCategory', 'Events', 'Event Photography', @ServiceCategoryParentId, 3, 1, 'Active'),
+    ('ServiceCategory', 'Video', 'Video Services', @ServiceCategoryParentId, 4, 1, 'Active'),
+    ('ServiceCategory', 'Corporate', 'Corporate Photography', @ServiceCategoryParentId, 5, 1, 'Active'),
+    ('ServiceCategory', 'Other', 'Other Services', @ServiceCategoryParentId, 6, 1, 'Active');
+
+-- MessageType children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('MessageType', 'Email', 'Email Message', @MessageTypeParentId, 1, 1, 'Active'),
+    ('MessageType', 'SMS', 'SMS Message', @MessageTypeParentId, 2, 1, 'Active'),
+    ('MessageType', 'Note', 'Internal Note', @MessageTypeParentId, 3, 1, 'Active'),
+    ('MessageType', 'InApp', 'In-App Notification', @MessageTypeParentId, 4, 1, 'Active');
+
+-- BookingStatus children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('BookingStatus', 'Confirmed', 'Booking Confirmed', @BookingStatusParentId, 1, 1, 'Active'),
+    ('BookingStatus', 'Scheduled', 'Booking Scheduled', @BookingStatusParentId, 2, 1, 'Active'),
+    ('BookingStatus', 'Completed', 'Booking Completed', @BookingStatusParentId, 3, 1, 'Active'),
+    ('BookingStatus', 'Cancelled', 'Booking Cancelled', @BookingStatusParentId, 4, 1, 'Active');
+
+-- InvoiceStatus children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('InvoiceStatus', 'Draft', 'Draft Invoice', @InvoiceStatusParentId, 1, 1, 'Active'),
+    ('InvoiceStatus', 'Issued', 'Invoice Issued', @InvoiceStatusParentId, 2, 1, 'Active'),
+    ('InvoiceStatus', 'Sent', 'Invoice Sent to Client', @InvoiceStatusParentId, 3, 1, 'Active'),
+    ('InvoiceStatus', 'Partially Paid', 'Invoice Partially Paid', @InvoiceStatusParentId, 4, 1, 'Active'),
+    ('InvoiceStatus', 'Paid', 'Invoice Paid', @InvoiceStatusParentId, 5, 1, 'Active'),
+    ('InvoiceStatus', 'Overdue', 'Invoice Overdue', @InvoiceStatusParentId, 6, 1, 'Active');
+
+-- EventType children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('EventType', 'Wedding', 'Wedding Event', @EventTypeParentId, 1, 1, 'Active'),
+    ('EventType', 'Portrait', 'Portrait Session', @EventTypeParentId, 2, 1, 'Active'),
+    ('EventType', 'Corporate', 'Corporate Event', @EventTypeParentId, 3, 1, 'Active'),
+    ('EventType', 'Personal', 'Personal Event', @EventTypeParentId, 4, 1, 'Active'),
+    ('EventType', 'Other', 'Other Event Type', @EventTypeParentId, 5, 1, 'Active');
+
+-- GalleryReviewStatus children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('GalleryReviewStatus', 'Draft', 'Draft Gallery', @GalleryReviewStatusParentId, 1, 1, 'Active'),
+    ('GalleryReviewStatus', 'UnderReview', 'Under Client Review', @GalleryReviewStatusParentId, 2, 1, 'Active'),
+    ('GalleryReviewStatus', 'ApprovedByClient', 'Approved by Client', @GalleryReviewStatusParentId, 3, 1, 'Active'),
+    ('GalleryReviewStatus', 'ReadyForDelivery', 'Ready for Delivery', @GalleryReviewStatusParentId, 4, 1, 'Active'),
+    ('GalleryReviewStatus', 'Delivered', 'Gallery Delivered', @GalleryReviewStatusParentId, 5, 1, 'Active');
+
+-- GalleryAssetStatus children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('GalleryAssetStatus', 'Original', 'Original Asset', @GalleryAssetStatusParentId, 1, 1, 'Active'),
+    ('GalleryAssetStatus', 'Retouched', 'Retouched Asset', @GalleryAssetStatusParentId, 2, 1, 'Active'),
+    ('GalleryAssetStatus', 'Final', 'Final Version', @GalleryAssetStatusParentId, 3, 1, 'Active'),
+    ('GalleryAssetStatus', 'Archived', 'Archived Asset', @GalleryAssetStatusParentId, 4, 1, 'Active'),
+    ('GalleryAssetStatus', 'Rejected', 'Rejected Asset', @GalleryAssetStatusParentId, 5, 1, 'Active');
+
+-- DeliverableType children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('DeliverableType', 'OnlineGallery', 'Online Gallery', @DeliverableTypeParentId, 1, 1, 'Active'),
+    ('DeliverableType', 'PrintedAlbum', 'Printed Album', @DeliverableTypeParentId, 2, 1, 'Active'),
+    ('DeliverableType', 'USB', 'USB Drive', @DeliverableTypeParentId, 3, 1, 'Active'),
+    ('DeliverableType', 'Prints', 'Physical Prints', @DeliverableTypeParentId, 4, 1, 'Active'),
+    ('DeliverableType', 'VideoEditedMaster', 'Edited Video Master', @DeliverableTypeParentId, 5, 1, 'Active'),
+    ('DeliverableType', 'RAWFiles', 'RAW Photo Files', @DeliverableTypeParentId, 6, 1, 'Active'),
+    ('DeliverableType', 'BlueRay', 'Blu-ray Disc', @DeliverableTypeParentId, 7, 1, 'Active'),
+    ('DeliverableType', 'ProofBook', 'Proof Book', @DeliverableTypeParentId, 8, 1, 'Active'),
+    ('DeliverableType', 'Canvas', 'Canvas Print', @DeliverableTypeParentId, 9, 1, 'Active'),
+    ('DeliverableType', 'Other', 'Other Deliverable', @DeliverableTypeParentId, 10, 1, 'Active');
+
+-- DeliveryMethod children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('DeliveryMethod', 'Email', 'Email Delivery', @DeliveryMethodParentId, 1, 1, 'Active'),
+    ('DeliveryMethod', 'Download', 'Online Download Link', @DeliveryMethodParentId, 2, 1, 'Active'),
+    ('DeliveryMethod', 'Physical', 'Physical Shipment', @DeliveryMethodParentId, 3, 1, 'Active'),
+    ('DeliveryMethod', 'InPerson', 'In-Person Pickup', @DeliveryMethodParentId, 4, 1, 'Active');
+
+-- AdjustmentType children
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('AdjustmentType', 'Percentage', 'Percentage Adjustment', @AdjustmentTypeParentId, 1, 1, 'Active'),
+    ('AdjustmentType', 'FixedAmount', 'Fixed Amount Adjustment', @AdjustmentTypeParentId, 2, 1, 'Active');
+
+-- CommunicationStatus children (get parent ID first)
+DECLARE @CommunicationStatusParentId INT;
+SELECT @CommunicationStatusParentId = LookupTypeID FROM LookupType WHERE LookupCategory = 'ROOT' AND LookupValue = 'CommunicationStatus';
+
+INSERT INTO LookupType (LookupCategory, LookupValue, DisplayLabel, ParentLookupTypeID, DisplayOrder, IsActive, RowState)
+VALUES
+    ('CommunicationStatus', 'Pending', 'Pending', @CommunicationStatusParentId, 1, 1, 'Active'),
+    ('CommunicationStatus', 'Sent', 'Sent', @CommunicationStatusParentId, 2, 1, 'Active'),
+    ('CommunicationStatus', 'Delivered', 'Delivered', @CommunicationStatusParentId, 3, 1, 'Active'),
+    ('CommunicationStatus', 'Read', 'Read', @CommunicationStatusParentId, 4, 1, 'Active'),
+    ('CommunicationStatus', 'Failed', 'Failed', @CommunicationStatusParentId, 5, 1, 'Active');
+
+PRINT 'Lookup types seeded: All enum categories and values created with hierarchical structure';
+
+-- ============================================
 -- SEED ROLES
 -- ============================================
 
