@@ -3982,3 +3982,73 @@ BEGIN
     SELECT @DeliveryPackageID AS DeliveryPackageID;
 END;
 
+-- ============================================
+-- GAP #23 & #24: CRM AND PHOTOGRAPHER ASSIGNMENT PROCEDURES
+-- ============================================
+
+CREATE PROCEDURE uspClientInfoGetVIP
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ClientID, Email, Phone, FullName, Address, PreferredContactMethod,
+        PreviousBookings, PersonalNotes, PreferredPhotographerUserID, ReferralSource,
+        IsVIP, LifetimeValue, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy,
+        DeletedAt, DeletedBy, IsDeleted
+    FROM ClientInfo
+    WHERE IsVIP = 1 AND IsDeleted = 0
+    ORDER BY LifetimeValue DESC, FullName ASC;
+END;
+
+CREATE PROCEDURE uspClientInfoGetByPhotographer
+    @PreferredPhotographerUserID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ClientID, Email, Phone, FullName, Address, PreferredContactMethod,
+        PreviousBookings, PersonalNotes, PreferredPhotographerUserID, ReferralSource,
+        IsVIP, LifetimeValue, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy,
+        DeletedAt, DeletedBy, IsDeleted
+    FROM ClientInfo
+    WHERE PreferredPhotographerUserID = @PreferredPhotographerUserID AND IsDeleted = 0
+    ORDER BY FullName ASC;
+END;
+
+CREATE PROCEDURE uspGalleryGetByPhotographer
+    @AssignedToPhotographerUserID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        GalleryID, GalleryTypeID, EventID, Title, Description, Category,
+        ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate,
+        ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatus,
+        ClientApprovalDeadline, ApprovedByUserID, CreatedBy, CreatedAt,
+        UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted,
+        AssignedToPhotographerUserID
+    FROM Gallery
+    WHERE AssignedToPhotographerUserID = @AssignedToPhotographerUserID AND IsDeleted = 0
+    ORDER BY CreatedAt DESC;
+END;
+
+CREATE PROCEDURE uspGalleryGetUnassigned
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        GalleryID, GalleryTypeID, EventID, Title, Description, Category,
+        ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate,
+        ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatus,
+        ClientApprovalDeadline, ApprovedByUserID, CreatedBy, CreatedAt,
+        UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted,
+        AssignedToPhotographerUserID
+    FROM Gallery
+    WHERE AssignedToPhotographerUserID IS NULL AND IsDeleted = 0
+    ORDER BY CreatedAt DESC;
+END;
+

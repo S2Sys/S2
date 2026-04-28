@@ -378,19 +378,23 @@ CREATE TABLE Gallery (
     DeletedBy INT,
     DeletedAt DATETIME,
     IsDeleted BIT DEFAULT 0,
+    -- Gap #24: Gallery photographer assignment
+    AssignedToPhotographerUserID INT,
     FOREIGN KEY (GalleryTypeID) REFERENCES GalleryType(GalleryTypeID),
     FOREIGN KEY (EventID) REFERENCES Event(EventID) ON DELETE SET NULL,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (ApprovedByUserID) REFERENCES Users(UserID),
     FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (AssignedToPhotographerUserID) REFERENCES Users(UserID),
     -- Private galleries must be tied to an event for client access control
     CONSTRAINT CHK_Gallery_PrivateEventID CHECK ((IsPrivate = 0) OR (IsPrivate = 1 AND EventID IS NOT NULL)),
     CONSTRAINT CHK_Gallery_ReviewStatus CHECK (ReviewStatus IN ('Draft', 'UnderReview', 'ApprovedByClient', 'ReadyForDelivery', 'Delivered')),
     CHECK (IsDeleted IN (0, 1)),
     INDEX IDX_Gallery_UpdatedBy (UpdatedBy),
     INDEX IDX_Gallery_ReviewStatus (ReviewStatus),
-    INDEX IDX_Gallery_IsDeleted (IsDeleted)
+    INDEX IDX_Gallery_IsDeleted (IsDeleted),
+    INDEX IDX_Gallery_AssignedToPhotographer (AssignedToPhotographerUserID)
 );
 
 CREATE TABLE GalleryAsset (
@@ -639,9 +643,16 @@ CREATE TABLE ClientInfo (
     DeletedAt DATETIME,
     DeletedBy INT,
     IsDeleted BIT DEFAULT 0,
+    -- Gap #23: CRM Fields
+    PersonalNotes NVARCHAR(MAX),
+    PreferredPhotographerUserID INT,
+    ReferralSource NVARCHAR(255),
+    IsVIP BIT DEFAULT 0,
+    LifetimeValue DECIMAL(10,2) DEFAULT 0,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
     FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (PreferredPhotographerUserID) REFERENCES Users(UserID),
     INDEX IDX_ClientInfo_IsDeleted (IsDeleted),
     INDEX IDX_ClientInfo_CreatedBy (CreatedBy)
 );
@@ -1293,6 +1304,9 @@ CREATE INDEX IDX_Invoice_BookingID ON Invoice(BookingID);
 CREATE INDEX IDX_Invoice_Status ON Invoice(Status);
 CREATE INDEX IDX_DailyTask_Status ON DailyTask(Status);
 CREATE INDEX IDX_ClientInfo_Email ON ClientInfo(Email);
+CREATE INDEX IDX_ClientInfo_IsVIP ON ClientInfo(IsVIP);
+CREATE INDEX IDX_ClientInfo_PreferredPhotographerUserID ON ClientInfo(PreferredPhotographerUserID);
+CREATE INDEX IDX_ClientInfo_LifetimeValue ON ClientInfo(LifetimeValue);
 CREATE INDEX IDX_ClientInfo_IsDeleted ON ClientInfo(IsDeleted);
 CREATE INDEX IDX_ClientInfo_CreatedBy ON ClientInfo(CreatedBy);
 CREATE INDEX IDX_ClientInfo_DeletedBy ON ClientInfo(DeletedBy);

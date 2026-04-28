@@ -171,6 +171,20 @@ SELECT @CorporateGalleryId = @@IDENTITY;
 PRINT 'Photo galleries seeded: Wedding=' + CAST(@WeddingGalleryId AS VARCHAR) + ', Portrait=' + CAST(@PortraitGalleryId AS VARCHAR) + ', Corporate=' + CAST(@CorporateGalleryId AS VARCHAR);
 
 -- ============================================
+-- SEED GALLERY PHOTOGRAPHER ASSIGNMENT (Gap #24)
+-- ============================================
+
+PRINT '=== Seeding Gallery Photographer Assignments ===';
+
+-- Assign galleries to photographer (UserID = 2)
+UPDATE Gallery
+SET AssignedToPhotographerUserID = 2
+WHERE GalleryID IN (@WeddingGalleryId, @PortraitGalleryId);
+
+PRINT 'Gallery photographer assignments seeded: Wedding=' + CAST(@WeddingGalleryId AS VARCHAR) +
+      ', Portrait=' + CAST(@PortraitGalleryId AS VARCHAR) + ' assigned to PhotographerUserID=2';
+
+-- ============================================
 -- SEED GALLERY ASSETS (Images)
 -- ============================================
 
@@ -602,6 +616,33 @@ EXEC usp_ClientInfo_Upsert
 SELECT @Client2Id = @@IDENTITY;
 
 PRINT 'Sample clients seeded: Client1=' + CAST(@Client1Id AS VARCHAR) + ', Client2=' + CAST(@Client2Id AS VARCHAR);
+
+-- ============================================
+-- SEED CLIENT CRM DATA (Gap #23)
+-- ============================================
+
+PRINT '=== Seeding ClientInfo CRM Fields ===';
+
+-- Update Client 1 with CRM data
+UPDATE ClientInfo
+SET PersonalNotes = 'High-value wedding client, referred by wedding planner John Smith. Prefers formal communication.',
+    PreferredPhotographerUserID = 2,
+    ReferralSource = 'Referral from John Smith',
+    IsVIP = 1,
+    LifetimeValue = 85000.00
+WHERE ClientID = @Client1Id;
+
+-- Update Client 2 with CRM data
+UPDATE ClientInfo
+SET PersonalNotes = 'Portrait and events client. Very responsive and professional.',
+    PreferredPhotographerUserID = 2,
+    ReferralSource = 'Instagram',
+    IsVIP = 0,
+    LifetimeValue = 12500.00
+WHERE ClientID = @Client2Id;
+
+PRINT 'ClientInfo CRM fields seeded: IsVIP=' + CAST((SELECT IsVIP FROM ClientInfo WHERE ClientID = @Client1Id) AS VARCHAR) +
+      ', LifetimeValue=' + CAST((SELECT LifetimeValue FROM ClientInfo WHERE ClientID = @Client1Id) AS VARCHAR);
 
 -- ============================================
 -- SEED AVAILABILITY
