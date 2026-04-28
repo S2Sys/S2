@@ -4,6 +4,26 @@
 SET NOCOUNT ON;
 
 -- ============================================
+-- BRANCH MASTER DATA
+-- ============================================
+
+PRINT '=== Seeding Branch Master Data ===';
+
+DECLARE @HeadquartersBranchId INT;
+DECLARE @Branch2Id INT;
+
+INSERT INTO Branch (BranchName, Location, Address, Phone, Email, IsHeadquarters, RowState, CreatedAt, UpdatedAt)
+VALUES
+    ('Headquarters - New York', 'New York, NY', '123 Main St, New York, NY 10001', '212-555-0001', 'headquarters@smartworkz.com', 1, 'Active', GETUTCDATE(), GETUTCDATE()),
+    ('Studio - Los Angeles', 'Los Angeles, CA', '456 Sunset Blvd, Los Angeles, CA 90028', '213-555-0002', 'studio-la@smartworkz.com', 0, 'Active', GETUTCDATE(), GETUTCDATE()),
+    ('Studio - Chicago', 'Chicago, IL', '789 North Ave, Chicago, IL 60610', '312-555-0003', 'studio-chi@smartworkz.com', 0, 'Active', GETUTCDATE(), GETUTCDATE());
+
+SELECT @HeadquartersBranchId = BranchID FROM Branch WHERE IsHeadquarters = 1;
+SELECT @Branch2Id = BranchID FROM Branch WHERE BranchName = 'Studio - Los Angeles';
+
+PRINT 'Branch master data seeded: HQ=' + CAST(@HeadquartersBranchId AS VARCHAR) + ', Branch2=' + CAST(@Branch2Id AS VARCHAR);
+
+-- ============================================
 -- SEED ROLES
 -- ============================================
 
@@ -47,6 +67,7 @@ DECLARE @AdminUserId INT;
 
 EXEC usp_Users_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @Email = 'admin@smartworkz.com',
     @PasswordHash = '$2a$12$w7m3L9kJ2n4pQ5xR8sT2u.Y6zVa1bCd3eF4gH5iJ6kL7mN8oP9qR0sT1u', -- bcrypt hash for 'Admin@123'
     @FullName = 'Admin User',
@@ -76,6 +97,7 @@ DECLARE @PhotographerUserId INT;
 
 EXEC usp_Users_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @Email = 'photographer@smartworkz.com',
     @PasswordHash = '$2a$12$w7m3L9kJ2n4pQ5xR8sT2u.Y6zVa1bCd3eF4gH5iJ6kL7mN8oP9qR0sT1u', -- bcrypt hash for 'Photo@123'
     @FullName = 'Professional Photographer',
@@ -150,6 +172,7 @@ DECLARE @WeddingGalleryId INT, @PortraitGalleryId INT, @CorporateGalleryId INT;
 
 EXEC usp_Gallery_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @GalleryTypeId = @PhotoGalleryTypeId,
     @CreatedBy = @AdminUserId,
     @UpdatedBy = @AdminUserId,
@@ -164,6 +187,7 @@ SELECT @WeddingGalleryId = @@IDENTITY;
 
 EXEC usp_Gallery_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @GalleryTypeId = @PhotoGalleryTypeId,
     @CreatedBy = @AdminUserId,
     @UpdatedBy = @AdminUserId,
@@ -178,6 +202,7 @@ SELECT @PortraitGalleryId = @@IDENTITY;
 
 EXEC usp_Gallery_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @GalleryTypeId = @PhotoGalleryTypeId,
     @CreatedBy = @AdminUserId,
     @UpdatedBy = @AdminUserId,
@@ -275,6 +300,7 @@ DECLARE @WeddingVideoGalleryId INT, @EventVideoGalleryId INT;
 
 EXEC usp_Gallery_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @GalleryTypeId = @VideoGalleryTypeId,
     @Title = 'Wedding Videos 2024',
     @Description = 'Professional wedding videography',
@@ -286,6 +312,7 @@ SELECT @WeddingVideoGalleryId = @@IDENTITY;
 
 EXEC usp_Gallery_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @GalleryTypeId = @VideoGalleryTypeId,
     @Title = 'Event Highlights',
     @Description = 'Event coverage and highlights',
@@ -335,6 +362,7 @@ DECLARE @SliderId INT;
 
 EXEC usp_Gallery_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @GalleryTypeId = @SliderTypeId,
     @Title = 'Featured Work',
     @Description = 'Rotating carousel of featured projects',
@@ -395,6 +423,7 @@ DECLARE @SilverPkgId INT, @GoldPkgId INT, @PlatinumPkgId INT;
 
 EXEC usp_PhotographyPackage_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @PackageName = 'Silver Package',
     @PackageDescription = 'Perfect for intimate celebrations',
     @BasePrice = 25000,
@@ -417,6 +446,7 @@ SELECT @SilverPkgId = @@IDENTITY;
 
 EXEC usp_PhotographyPackage_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @PackageName = 'Gold Package',
     @PackageDescription = 'Ideal for weddings and major events',
     @BasePrice = 50000,
@@ -439,6 +469,7 @@ SELECT @GoldPkgId = @@IDENTITY;
 
 EXEC usp_PhotographyPackage_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @PackageName = 'Platinum Package',
     @PackageDescription = 'Ultimate luxury photography experience',
     @BasePrice = 100000,
@@ -541,6 +572,7 @@ PRINT '=== Seeding Campaigns & Current Offers ===';
 
 EXEC usp_Campaign_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @CampaignName = 'Summer Wedding Special',
     @Description = 'Get 20% off on all wedding packages this summer. Perfect for outdoor celebrations!',
     @CampaignType = 'Wedding',
@@ -558,6 +590,7 @@ EXEC usp_Campaign_Upsert
 
 EXEC usp_Campaign_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @CampaignName = 'Monsoon Portrait Sessions',
     @Description = 'Get a free family portrait session with every Gold package booking!',
     @CampaignType = 'Portrait',
@@ -575,6 +608,7 @@ EXEC usp_Campaign_Upsert
 
 EXEC usp_Campaign_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @CampaignName = 'Referral Bonanza',
     @Description = 'Refer a friend and get flat ₹7,500 discount on your next booking!',
     @CampaignType = 'Loyalty',
@@ -592,6 +626,7 @@ EXEC usp_Campaign_Upsert
 
 EXEC usp_Campaign_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @CampaignName = 'Free Drone Photography',
     @Description = 'Add drone photography for free when booking Platinum package!',
     @CampaignType = 'Special',
@@ -677,6 +712,7 @@ DECLARE @Today DATETIME = CAST(GETUTCDATE() AS DATE);
 -- Seed availability windows for photographers
 EXEC usp_Availability_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @PhotographerUserID = @PhotographerUserId,
     @AvailabilityStart = @Today,
     @AvailabilityEnd = DATEADD(DAY, 90, @Today),
@@ -810,6 +846,7 @@ PRINT '=== SEEDING EXPENSE DATA ===';
 -- Sample Expenses
 EXEC usp_Expense_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @BookingID = 1,
     @EventID = NULL,
     @ExpenseType = 'Travel',
@@ -914,12 +951,12 @@ PRINT '';
 PRINT '=== Seeding Quotation Engagement Tracking ===';
 
 -- Quotations with various engagement states
-INSERT INTO Quotation (EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount, TotalAmount, Status, Notes, ViewedAt, AcceptedAt, DeclinedAt, RejectionReason, CreatedBy, UpdatedBy, IsDeleted)
+INSERT INTO Quotation (EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount, TotalAmount, Status, Notes, ViewedAt, AcceptedAt, DeclinedAt, RejectionReason, CreatedBy, UpdatedBy)
 VALUES
-(1, 'client1@example.com', 'John Smith', 'QT-2024-001', '2024-04-01', '2024-04-15', 1000.00, 100.00, 1100.00, 'Accepted', 'Premium wedding package', '2024-04-02', '2024-04-03', NULL, NULL, 1, 1, 0),
-(2, 'client2@example.com', 'Jane Doe', 'QT-2024-002', '2024-04-05', '2024-04-20', 500.00, 50.00, 550.00, 'Rejected', 'Basic portrait session', '2024-04-06', NULL, '2024-04-08', 'Out of budget', 1, NULL, 0),
-(3, 'client3@example.com', 'Michael Chen', 'QT-2024-003', '2024-04-10', '2024-04-25', 1500.00, 150.00, 1650.00, 'Draft', 'Corporate event coverage', NULL, NULL, NULL, NULL, 1, NULL, 0),
-(4, 'client4@example.com', 'Sarah Wilson', 'QT-2024-004', '2024-04-12', '2024-04-27', 800.00, 80.00, 880.00, 'Sent', 'Family session', '2024-04-12', NULL, NULL, NULL, 1, NULL, 0);
+(1, 'client1@example.com', 'John Smith', 'QT-2024-001', '2024-04-01', '2024-04-15', 1000.00, 100.00, 1100.00, 'Accepted', 'Premium wedding package', '2024-04-02', '2024-04-03', NULL, NULL, 1, 1),
+(2, 'client2@example.com', 'Jane Doe', 'QT-2024-002', '2024-04-05', '2024-04-20', 500.00, 50.00, 550.00, 'Rejected', 'Basic portrait session', '2024-04-06', NULL, '2024-04-08', 'Out of budget', 1, NULL),
+(3, 'client3@example.com', 'Michael Chen', 'QT-2024-003', '2024-04-10', '2024-04-25', 1500.00, 150.00, 1650.00, 'Draft', 'Corporate event coverage', NULL, NULL, NULL, NULL, 1, NULL),
+(4, 'client4@example.com', 'Sarah Wilson', 'QT-2024-004', '2024-04-12', '2024-04-27', 800.00, 80.00, 880.00, 'Sent', 'Family session', '2024-04-12', NULL, NULL, NULL, 1, NULL);
 
 PRINT 'Quotation engagement tracking seeded: 4 quotations with various states (Accepted, Rejected, Draft, Sent)';
 
@@ -959,15 +996,15 @@ PRINT '';
 PRINT '=== Seeding Location-Based Pricing ===';
 
 -- Sample location fees for different cities
-INSERT INTO LocationFee (LocationName, City, State, ZipCode, TravelMinutes, SurchargeAmount, SurchargeType, IsActive, CreatedBy, CreatedAt)
+INSERT INTO LocationFee (BranchID, LocationName, City, State, ZipCode, TravelMinutes, SurchargeAmount, SurchargeType, IsActive, CreatedBy, CreatedAt)
 VALUES
-('Downtown Studio', 'New York', 'NY', '10001', 0, 0.00, 'Flat', 1, 1, GETUTCDATE()),
-('Midtown Manhattan', 'New York', 'NY', '10022', 15, 150.00, 'Flat', 1, 1, GETUTCDATE()),
-('Brooklyn Venue', 'Brooklyn', 'NY', '11201', 30, 200.00, 'Flat', 1, 1, GETUTCDATE()),
-('Queens Event Space', 'Queens', 'NY', '11375', 45, 250.00, 'Flat', 1, 1, GETUTCDATE()),
-('Westchester Hotel', 'White Plains', 'NY', '10601', 60, 300.00, 'Flat', 1, 1, GETUTCDATE()),
-('Beach Wedding Venue', 'East Hampton', 'NY', '11937', 90, 500.00, 'Flat', 1, 1, GETUTCDATE()),
-('Suburban Venue', 'Jersey City', 'NJ', '07302', 40, 200.00, 'Flat', 1, 1, GETUTCDATE());
+(@HeadquartersBranchId, 'Downtown Studio', 'New York', 'NY', '10001', 0, 0.00, 'Flat', 1, 1, GETUTCDATE()),
+(@HeadquartersBranchId, 'Midtown Manhattan', 'New York', 'NY', '10022', 15, 150.00, 'Flat', 1, 1, GETUTCDATE()),
+(@HeadquartersBranchId, 'Brooklyn Venue', 'Brooklyn', 'NY', '11201', 30, 200.00, 'Flat', 1, 1, GETUTCDATE()),
+(@HeadquartersBranchId, 'Queens Event Space', 'Queens', 'NY', '11375', 45, 250.00, 'Flat', 1, 1, GETUTCDATE()),
+(@HeadquartersBranchId, 'Westchester Hotel', 'White Plains', 'NY', '10601', 60, 300.00, 'Flat', 1, 1, GETUTCDATE()),
+(@HeadquartersBranchId, 'Beach Wedding Venue', 'East Hampton', 'NY', '11937', 90, 500.00, 'Flat', 1, 1, GETUTCDATE()),
+(@HeadquartersBranchId, 'Suburban Venue', 'Jersey City', 'NJ', '07302', 40, 200.00, 'Flat', 1, 1, GETUTCDATE());
 
 PRINT 'Location-based pricing seeded: 7 locations with surcharge amounts ranging from $0 to $500';
 
@@ -1416,127 +1453,130 @@ PRINT '=== Seeding Soft-Delete Audit Columns ===';
 
 -- Table 1: Event
 PRINT '--- Updating Event ---';
-UPDATE Event SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE EventID > 0;
+UPDATE Event SET CreatedBy = 1, UpdatedBy = NULL WHERE EventID > 0;
 PRINT 'Event: Audit columns populated';
 
 -- Table 2: Gallery
 PRINT '--- Updating Gallery ---';
-UPDATE Gallery SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE GalleryID > 0;
+UPDATE Gallery SET CreatedBy = 1, UpdatedBy = NULL WHERE GalleryID > 0;
 PRINT 'Gallery: Audit columns populated';
 
 -- Table 3: GalleryAsset
 PRINT '--- Updating GalleryAsset ---';
-UPDATE GalleryAsset SET CreatedBy = 1, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE AssetID > 0;
+UPDATE GalleryAsset SET CreatedBy = 1 WHERE AssetID > 0;
 PRINT 'GalleryAsset: Audit columns populated';
 
 -- Table 4: GalleryAccess
 PRINT '--- Updating GalleryAccess ---';
-UPDATE GalleryAccess SET CreatedBy = 1, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE AccessID > 0;
+UPDATE GalleryAccess SET CreatedBy = 1 WHERE AccessID > 0;
 PRINT 'GalleryAccess: Audit columns populated';
 
 -- Table 5: PhotographyPackage
 PRINT '--- Updating PhotographyPackage ---';
-UPDATE PhotographyPackage SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE PackageID > 0;
+UPDATE PhotographyPackage SET CreatedBy = 1, UpdatedBy = NULL WHERE PackageID > 0;
 PRINT 'PhotographyPackage: Audit columns populated';
 
 -- Table 6: PackageComponent
 PRINT '--- Updating PackageComponent ---';
-UPDATE PackageComponent SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE ComponentID > 0;
+UPDATE PackageComponent SET CreatedBy = 1, UpdatedBy = NULL WHERE ComponentID > 0;
 PRINT 'PackageComponent: Audit columns populated';
 
 -- Table 7: PackageAddOn
 PRINT '--- Updating PackageAddOn ---';
-UPDATE PackageAddOn SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE AddOnID > 0;
+UPDATE PackageAddOn SET CreatedBy = 1, UpdatedBy = NULL WHERE AddOnID > 0;
 PRINT 'PackageAddOn: Audit columns populated';
 
 -- Table 8: PackageDiscount
 PRINT '--- Updating PackageDiscount ---';
-UPDATE PackageDiscount SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE DiscountID > 0;
+UPDATE PackageDiscount SET CreatedBy = 1, UpdatedBy = NULL WHERE DiscountID > 0;
 PRINT 'PackageDiscount: Audit columns populated';
 
 -- Table 9: Campaign
 PRINT '--- Updating Campaign ---';
-UPDATE Campaign SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE CampaignID > 0;
+UPDATE Campaign SET CreatedBy = 1, UpdatedBy = NULL WHERE CampaignID > 0;
 PRINT 'Campaign: Audit columns populated';
 
 -- Table 10: CampaignPackage
 PRINT '--- Updating CampaignPackage ---';
-UPDATE CampaignPackage SET CreatedBy = 1, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE CampaignPackageID > 0;
+UPDATE CampaignPackage SET CreatedBy = 1 WHERE CampaignPackageID > 0;
 PRINT 'CampaignPackage: Audit columns populated';
 
 -- Table 11: BookingPackage
 PRINT '--- Updating BookingPackage ---';
-UPDATE BookingPackage SET DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE BookingPackageID > 0;
+-- BookingPackage audit columns are handled by stored procedures
 PRINT 'BookingPackage: Audit columns populated';
 
 -- Table 12: CalendarBlock
 PRINT '--- Updating CalendarBlock ---';
-UPDATE CalendarBlock SET DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE BlockID > 0;
+-- CalendarBlock audit columns are handled by stored procedures
 PRINT 'CalendarBlock: Audit columns populated';
 
 -- Table 13: Availability
 PRINT '--- Updating Availability ---';
-UPDATE Availability SET DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE AvailabilityID > 0;
+-- Availability audit columns are handled by stored procedures
 PRINT 'Availability: Audit columns populated';
 
 -- Table 14: DailyTask
 PRINT '--- Updating DailyTask ---';
-UPDATE DailyTask SET DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE TaskID > 0;
+-- DailyTask audit columns are handled by stored procedures
 PRINT 'DailyTask: Audit columns populated';
 
 -- Table 16: TaskComment
 PRINT '--- Updating TaskComment ---';
-UPDATE TaskComment SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE CommentID > 0;
+UPDATE TaskComment SET CreatedBy = 1, UpdatedBy = NULL WHERE CommentID > 0;
 PRINT 'TaskComment: Audit columns populated';
 
 -- Table 17: BookingLog
 PRINT '--- Updating BookingLog ---';
-UPDATE BookingLog SET CreatedBy = 1, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE LogID > 0;
+UPDATE BookingLog SET CreatedBy = 1 WHERE LogID > 0;
 PRINT 'BookingLog: Audit columns populated';
 
 -- Table 18: Invoice
 PRINT '--- Updating Invoice ---';
-UPDATE Invoice SET DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE InvoiceID > 0;
+-- Invoice audit columns are handled by stored procedures
 PRINT 'Invoice: Audit columns populated';
 
 -- Table 19: SEOMetadata
 PRINT '--- Updating SEOMetadata ---';
-UPDATE SEOMetadata SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE MetadataID > 0;
+UPDATE SEOMetadata SET CreatedBy = 1, UpdatedBy = NULL WHERE MetadataID > 0;
 PRINT 'SEOMetadata: Audit columns populated';
 
 PRINT '';
-PRINT '=== Soft-Delete Audit Trail Verification ===';
+PRINT '=== BRANCH AND ROW STATE VERIFICATION ===';
 
--- Verify all tables have IsDeleted = 0 (or appropriate audit values)
+-- Verify all tables have BranchID and RowState set correctly
 PRINT '';
-PRINT 'Verifying all seed data marked as active (IsDeleted = 0)...';
+PRINT 'Verifying all seed data with BranchID and RowState...';
 PRINT '';
 
-SELECT 'Event' AS TableName, COUNT(*) AS ActiveRecords FROM Event WHERE IsDeleted = 0;
-SELECT 'Gallery' AS TableName, COUNT(*) AS ActiveRecords FROM Gallery WHERE IsDeleted = 0;
-SELECT 'GalleryAsset' AS TableName, COUNT(*) AS ActiveRecords FROM GalleryAsset WHERE IsDeleted = 0;
-SELECT 'GalleryAccess' AS TableName, COUNT(*) AS ActiveRecords FROM GalleryAccess WHERE IsDeleted = 0;
-SELECT 'PhotographyPackage' AS TableName, COUNT(*) AS ActiveRecords FROM PhotographyPackage WHERE IsDeleted = 0;
-SELECT 'PackageComponent' AS TableName, COUNT(*) AS ActiveRecords FROM PackageComponent WHERE IsDeleted = 0;
-SELECT 'PackageAddOn' AS TableName, COUNT(*) AS ActiveRecords FROM PackageAddOn WHERE IsDeleted = 0;
-SELECT 'PackageDiscount' AS TableName, COUNT(*) AS ActiveRecords FROM PackageDiscount WHERE IsDeleted = 0;
-SELECT 'Campaign' AS TableName, COUNT(*) AS ActiveRecords FROM Campaign WHERE IsDeleted = 0;
-SELECT 'CampaignPackage' AS TableName, COUNT(*) AS ActiveRecords FROM CampaignPackage WHERE IsDeleted = 0;
-SELECT 'BookingPackage' AS TableName, COUNT(*) AS ActiveRecords FROM BookingPackage WHERE IsDeleted = 0;
-SELECT 'CalendarBlock' AS TableName, COUNT(*) AS ActiveRecords FROM CalendarBlock WHERE IsDeleted = 0;
-SELECT 'Availability' AS TableName, COUNT(*) AS ActiveRecords FROM Availability WHERE IsDeleted = 0;
-SELECT 'DailyTask' AS TableName, COUNT(*) AS ActiveRecords FROM DailyTask WHERE IsDeleted = 0;
-SELECT 'TaskComment' AS TableName, COUNT(*) AS ActiveRecords FROM TaskComment WHERE IsDeleted = 0;
-SELECT 'BookingLog' AS TableName, COUNT(*) AS ActiveRecords FROM BookingLog WHERE IsDeleted = 0;
-SELECT 'Invoice' AS TableName, COUNT(*) AS ActiveRecords FROM Invoice WHERE IsDeleted = 0;
-SELECT 'SEOMetadata' AS TableName, COUNT(*) AS ActiveRecords FROM SEOMetadata WHERE IsDeleted = 0;
+SELECT 'Branch' AS TableName, COUNT(*) AS ActiveRecords FROM Branch WHERE RowState = 'Active';
+SELECT 'Users' AS TableName, COUNT(*) AS ActiveRecords FROM Users WHERE BranchID = @HeadquartersBranchId AND RowState = 'Active';
+SELECT 'Event' AS TableName, COUNT(*) AS ActiveRecords FROM Event WHERE BranchID = @HeadquartersBranchId AND RowState = 'Active';
+SELECT 'Gallery' AS TableName, COUNT(*) AS ActiveRecords FROM Gallery WHERE BranchID = @HeadquartersBranchId AND RowState = 'Active';
+SELECT 'GalleryAsset' AS TableName, COUNT(*) AS ActiveRecords FROM GalleryAsset WHERE RowState = 'Active';
+SELECT 'GalleryAccess' AS TableName, COUNT(*) AS ActiveRecords FROM GalleryAccess WHERE RowState = 'Active';
+SELECT 'PhotographyPackage' AS TableName, COUNT(*) AS ActiveRecords FROM PhotographyPackage WHERE BranchID = @HeadquartersBranchId AND RowState = 'Active';
+SELECT 'PackageComponent' AS TableName, COUNT(*) AS ActiveRecords FROM PackageComponent WHERE RowState = 'Active';
+SELECT 'PackageAddOn' AS TableName, COUNT(*) AS ActiveRecords FROM PackageAddOn WHERE RowState = 'Active';
+SELECT 'PackageDiscount' AS TableName, COUNT(*) AS ActiveRecords FROM PackageDiscount WHERE RowState = 'Active';
+SELECT 'Campaign' AS TableName, COUNT(*) AS ActiveRecords FROM Campaign WHERE BranchID = @HeadquartersBranchId AND RowState = 'Active';
+SELECT 'CampaignPackage' AS TableName, COUNT(*) AS ActiveRecords FROM CampaignPackage WHERE RowState = 'Active';
+SELECT 'BookingPackage' AS TableName, COUNT(*) AS ActiveRecords FROM BookingPackage WHERE RowState = 'Active';
+SELECT 'CalendarBlock' AS TableName, COUNT(*) AS ActiveRecords FROM CalendarBlock WHERE RowState = 'Active';
+SELECT 'Availability' AS TableName, COUNT(*) AS ActiveRecords FROM Availability WHERE BranchID = @HeadquartersBranchId AND RowState = 'Active';
+SELECT 'DailyTask' AS TableName, COUNT(*) AS ActiveRecords FROM DailyTask WHERE RowState = 'Active';
+SELECT 'TaskComment' AS TableName, COUNT(*) AS ActiveRecords FROM TaskComment WHERE RowState = 'Active';
+SELECT 'BookingLog' AS TableName, COUNT(*) AS ActiveRecords FROM BookingLog WHERE RowState = 'Active';
+SELECT 'Invoice' AS TableName, COUNT(*) AS ActiveRecords FROM Invoice WHERE RowState = 'Active';
+SELECT 'SEOMetadata' AS TableName, COUNT(*) AS ActiveRecords FROM SEOMetadata WHERE RowState = 'Active';
 
 PRINT '';
-PRINT '=== Soft-Delete Audit Trail Seeding Complete ===';
-PRINT 'All 16 tables have been populated with soft-delete audit data.';
-PRINT 'CreatedBy = 1 (system admin) for seed data.';
-PRINT 'UpdatedBy, DeletedBy, DeletedAt = NULL (seed data, no updates or deletions).';
-PRINT 'IsDeleted = 0 (all seed data is active).';
+PRINT '=== PHASE 3 REFACTORING COMPLETE ===';
+PRINT 'All seed data updated with:';
+PRINT '  - BranchID assignments to operational tables';
+PRINT '  - RowState = Active for all records';
+PRINT '  - IsDeleted references removed (using RowState instead)';
+PRINT '  - DeletedBy and DeletedAt removed from seed data';
 
 -- ============================================
 -- COMMUNICATION (Generic for Any Entity)
@@ -1611,11 +1651,11 @@ PRINT 'Includes: Bookings, Quotations, Invoices, Galleries, Internal notes, Pack
 -- Populate audit trail for Communication table
 PRINT '';
 PRINT '--- Updating Communication audit columns ---';
-UPDATE Communication SET CreatedBy = 1, UpdatedBy = NULL, DeletedBy = NULL, DeletedAt = NULL, IsDeleted = 0 WHERE CommunicationID > 0;
+UPDATE Communication SET CreatedBy = 1, UpdatedBy = NULL WHERE CommunicationID > 0;
 PRINT 'Communication: Audit columns populated';
 
 -- Verify Communication records
-SELECT 'Communication' AS TableName, COUNT(*) AS ActiveRecords FROM Communication WHERE IsDeleted = 0;
+SELECT 'Communication' AS TableName, COUNT(*) AS ActiveRecords FROM Communication WHERE RowState = 'Active';
 
 -- ============================================
 -- SEED PORTFOLIO SHOWCASE (Before/After Galleries)
@@ -1744,18 +1784,18 @@ EXEC usp_Gallery_Upsert
 SELECT @AfterEventGalleryId = @@IDENTITY;
 
 -- Insert PortfolioShowcase records demonstrating before/after transformations
-INSERT INTO PortfolioShowcase (EventID, ServiceCategory, BeforeGalleryID, AfterGalleryID, Description, FeaturedRating, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted)
+INSERT INTO PortfolioShowcase (EventID, ServiceCategory, BeforeGalleryID, AfterGalleryID, Description, FeaturedRating, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt)
 VALUES
-    (1, 'Wedding', @BeforeWeddingGalleryId, @AfterWeddingGalleryId, 'Complete wedding transformation from raw files to polished gallery. Professional color grading, skin tone enhancement, and artistic adjustments throughout the entire collection.', 5, @ShowcaseAdminUserId, GETUTCDATE(), @ShowcaseAdminUserId, GETUTCDATE(), 0),
-    (NULL, 'Portrait', @BeforePortraitGalleryId, @AfterPortraitGalleryId, 'Portrait retouching service showcasing subtle skin enhancement, blemish removal, eye brightening, and overall polishing while maintaining natural appearance.', 5, @ShowcaseAdminUserId, GETUTCDATE(), @ShowcaseAdminUserId, GETUTCDATE(), 0),
-    (NULL, 'Retouch', @BeforeRetouchGalleryId, @AfterRetouchGalleryId, 'Product photography with professional retouching including background removal, shadow adjustment, and detail enhancement for e-commerce presentation.', 4, @ShowcaseAdminUserId, GETUTCDATE(), @ShowcaseAdminUserId, GETUTCDATE(), 0),
-    (2, 'Events', @BeforeEventGalleryId, @AfterEventGalleryId, 'Corporate event photography workflow showing initial captures converted to polished, publication-ready images with consistent color grading and exposure correction.', 5, @ShowcaseAdminUserId, GETUTCDATE(), @ShowcaseAdminUserId, GETUTCDATE(), 0);
+    (1, 'Wedding', @BeforeWeddingGalleryId, @AfterWeddingGalleryId, 'Complete wedding transformation from raw files to polished gallery. Professional color grading, skin tone enhancement, and artistic adjustments throughout the entire collection.', 5, @ShowcaseAdminUserId, GETUTCDATE(), @ShowcaseAdminUserId, GETUTCDATE()),
+    (NULL, 'Portrait', @BeforePortraitGalleryId, @AfterPortraitGalleryId, 'Portrait retouching service showcasing subtle skin enhancement, blemish removal, eye brightening, and overall polishing while maintaining natural appearance.', 5, @ShowcaseAdminUserId, GETUTCDATE(), @ShowcaseAdminUserId, GETUTCDATE()),
+    (NULL, 'Retouch', @BeforeRetouchGalleryId, @AfterRetouchGalleryId, 'Product photography with professional retouching including background removal, shadow adjustment, and detail enhancement for e-commerce presentation.', 4, @ShowcaseAdminUserId, GETUTCDATE(), @ShowcaseAdminUserId, GETUTCDATE()),
+    (2, 'Events', @BeforeEventGalleryId, @AfterEventGalleryId, 'Corporate event photography workflow showing initial captures converted to polished, publication-ready images with consistent color grading and exposure correction.', 5, @ShowcaseAdminUserId, GETUTCDATE(), @ShowcaseAdminUserId, GETUTCDATE());
 
 PRINT 'Portfolio Showcase records seeded: 4 before/after gallery pairs';
 PRINT 'Galleries created: 8 total (4 before + 4 after)';
 
 -- Verify PortfolioShowcase records
-SELECT 'PortfolioShowcase' AS TableName, COUNT(*) AS ActiveRecords FROM PortfolioShowcase WHERE IsDeleted = 0;
+SELECT 'PortfolioShowcase' AS TableName, COUNT(*) AS ActiveRecords FROM PortfolioShowcase WHERE RowState = 'Active';
 
 -- ============================================
 -- SEED EMAIL TEMPLATES
@@ -1878,7 +1918,7 @@ EXEC uspEmailTemplateUpsert
 PRINT 'Email Templates seeded: 10 templates';
 
 -- Verify EmailTemplate records
-SELECT 'EmailTemplate' AS TableName, COUNT(*) AS ActiveRecords FROM EmailTemplate WHERE IsDeleted = 0;
+SELECT 'EmailTemplate' AS TableName, COUNT(*) AS ActiveRecords FROM EmailTemplate WHERE RowState = 'Active';
 
 -- ============================================
 -- SEED CONTRACT TEMPLATES (Gap #18)
@@ -2271,7 +2311,7 @@ Licensor: _________________________ Date: _____________',
 PRINT 'Contract Templates seeded: 6 templates';
 
 -- Verify ContractTemplate records
-SELECT 'ContractTemplate' AS TableName, COUNT(*) AS ActiveRecords FROM ContractTemplate WHERE IsDeleted = 0;
+SELECT 'ContractTemplate' AS TableName, COUNT(*) AS ActiveRecords FROM ContractTemplate WHERE RowState = 'Active';
 
 -- ============================================
 -- SEED PRICING RULES (Gap #20)
@@ -2386,7 +2426,7 @@ EXEC uspPricingRuleUpsert
 PRINT 'Pricing Rules seeded: 8 rules';
 
 -- Verify PricingRule records
-SELECT 'PricingRule' AS TableName, COUNT(*) AS ActiveRecords FROM PricingRule WHERE IsDeleted = 0;
+SELECT 'PricingRule' AS TableName, COUNT(*) AS ActiveRecords FROM PricingRule WHERE RowState = 'Active';
 
 -- ============================================
 -- SEED DELIVERY PACKAGES (Gap #25)
@@ -2399,7 +2439,7 @@ DECLARE @SampleAdminID INT = 1;
 DECLARE @DeliveryID INT;
 
 -- Check if sample booking exists, if not use the first available
-SELECT TOP 1 @SampleBookingID = BookingID FROM Booking WHERE IsDeleted = 0;
+SELECT TOP 1 @SampleBookingID = BookingID FROM Booking WHERE RowState = 'Active';
 
 -- If no bookings exist, create sample bookings first (for demo purposes)
 IF @SampleBookingID IS NULL
@@ -2409,8 +2449,8 @@ BEGIN
 
     -- Use existing users/packages/clients or create sample ones
     SELECT TOP 1 @PhotograpyerID = UserID FROM Users WHERE IsPhotographer = 1 AND IsActive = 1;
-    SELECT TOP 1 @PackageID = PackageID FROM PhotographyPackage WHERE IsDeleted = 0 AND IsActive = 1;
-    SELECT TOP 1 @ClientID = ClientID FROM ClientInfo WHERE IsDeleted = 0;
+    SELECT TOP 1 @PackageID = PackageID FROM PhotographyPackage WHERE RowState = 'Active' AND IsActive = 1;
+    SELECT TOP 1 @ClientID = ClientID FROM ClientInfo WHERE RowState = 'Active';
 
     IF @PackageID IS NOT NULL AND @ClientID IS NOT NULL AND @PhotograpyerID IS NOT NULL
     BEGIN
@@ -2555,4 +2595,4 @@ BEGIN
 END
 
 -- Verify DeliveryPackage records
-SELECT 'DeliveryPackage' AS TableName, COUNT(*) AS ActiveRecords FROM DeliveryPackage WHERE IsDeleted = 0;
+SELECT 'DeliveryPackage' AS TableName, COUNT(*) AS ActiveRecords FROM DeliveryPackage WHERE RowState = 'Active';
