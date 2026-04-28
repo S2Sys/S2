@@ -214,7 +214,7 @@ BEGIN
             g.DeletedBy, g.DeletedAt, g.IsDeleted
     FROM Gallery g
     INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
-    WHERE g.GalleryID = @Id AND g.IsDeleted = 0;
+    WHERE g.GalleryID = @Id AND g.RowState = 'Active';
 END;
 
 CREATE PROCEDURE usp_Gallery_GetByType
@@ -225,7 +225,7 @@ BEGIN
             g.ThumbnailUrl, g.DisplayOrder, g.IsFeatured, g.IsPublished, g.ViewCount
     FROM Gallery g
     INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
-    WHERE gt.TypeName = @TypeName AND g.IsPublished = 1 AND g.IsDeleted = 0
+    WHERE gt.TypeName = @TypeName AND g.IsPublished = 1 AND g.RowState = 'Active'
     ORDER BY g.DisplayOrder, g.CreatedAt DESC;
 END;
 
@@ -236,7 +236,7 @@ BEGIN
     SELECT g.GalleryID, g.GalleryTypeID, gt.TypeName, g.Title, g.Description, g.ReviewStatus, g.ClientApprovalDeadline, g.ApprovedByUserID, g.ApprovedAt, g.CreatedAt
     FROM Gallery g
     INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
-    WHERE g.ReviewStatus = @ReviewStatus AND g.IsDeleted = 0
+    WHERE g.ReviewStatus = @ReviewStatus AND g.RowState = 'Active'
     ORDER BY g.CreatedAt DESC;
 END;
 
@@ -258,13 +258,13 @@ BEGIN
         SELECT TOP 6 g.GalleryID, gt.TypeName, g.Title, g.ThumbnailUrl, g.DisplayOrder, g.ViewCount
         FROM Gallery g
         INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
-        WHERE g.IsFeatured = 1 AND g.IsPublished = 1 AND g.IsDeleted = 0
+        WHERE g.IsFeatured = 1 AND g.IsPublished = 1 AND g.RowState = 'Active'
         ORDER BY g.DisplayOrder;
     ELSE
         SELECT TOP 6 g.GalleryID, gt.TypeName, g.Title, g.ThumbnailUrl, g.DisplayOrder, g.ViewCount
         FROM Gallery g
         INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
-        WHERE gt.TypeName = @TypeName AND g.IsFeatured = 1 AND g.IsPublished = 1 AND g.IsDeleted = 0
+        WHERE gt.TypeName = @TypeName AND g.IsFeatured = 1 AND g.IsPublished = 1 AND g.RowState = 'Active'
         ORDER BY g.DisplayOrder;
 END;
 
@@ -278,7 +278,7 @@ BEGIN
         SELECT g.GalleryID, gt.TypeName, g.Title, g.Description, g.ThumbnailUrl, g.DisplayOrder, g.ViewCount
         FROM Gallery g
         INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
-        WHERE g.IsPublished = 1 AND g.IsDeleted = 0
+        WHERE g.IsPublished = 1 AND g.RowState = 'Active'
         ORDER BY g.DisplayOrder, g.CreatedAt DESC
         OFFSET (@PageNumber - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY;
@@ -286,7 +286,7 @@ BEGIN
         SELECT g.GalleryID, gt.TypeName, g.Title, g.Description, g.ThumbnailUrl, g.DisplayOrder, g.ViewCount
         FROM Gallery g
         INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
-        WHERE gt.TypeName = @TypeName AND g.IsPublished = 1 AND g.IsDeleted = 0
+        WHERE gt.TypeName = @TypeName AND g.IsPublished = 1 AND g.RowState = 'Active'
         ORDER BY g.DisplayOrder, g.CreatedAt DESC
         OFFSET (@PageNumber - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY;
@@ -294,7 +294,7 @@ BEGIN
     SELECT COUNT(*) AS TotalCount
     FROM Gallery g
     INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
-    WHERE g.IsPublished = 1 AND g.IsDeleted = 0 AND (@TypeName IS NULL OR gt.TypeName = @TypeName);
+    WHERE g.IsPublished = 1 AND g.RowState = 'Active' AND (@TypeName IS NULL OR gt.TypeName = @TypeName);
 END;
 
 CREATE PROCEDURE usp_Gallery_Delete
@@ -357,7 +357,7 @@ AS
 BEGIN
     SELECT AssetID, GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, CreatedBy, UploadedAt, DeletedBy, DeletedAt, IsDeleted
     FROM GalleryAsset
-    WHERE GalleryID = @GalleryId AND IsDeleted = 0
+    WHERE GalleryID = @GalleryId AND RowState = 'Active'
     ORDER BY DisplayOrder;
 END;
 
@@ -367,7 +367,7 @@ AS
 BEGIN
     SELECT AssetID, GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, AssetStatus, RetouchNotes, DeletedBy, DeletedAt, IsDeleted
     FROM GalleryAsset
-    WHERE AssetID = @Id AND IsDeleted = 0;
+    WHERE AssetID = @Id;
 END;
 
 CREATE PROCEDURE usp_GalleryAsset_GetByStatus
@@ -510,7 +510,7 @@ BEGIN
     SELECT PackageID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages, MaxVideoDurationMinutes,
            IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel, IncludedSecondPhotographer, IsActive, IsFeatured,
            DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM PhotographyPackage WHERE PackageID = @Id AND IsDeleted = 0;
+    FROM PhotographyPackage WHERE PackageID = @Id;
 END;
 
 CREATE PROCEDURE usp_PhotographyPackage_GetActive
@@ -519,7 +519,7 @@ BEGIN
     SELECT PackageID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages, MaxVideoDurationMinutes,
            IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel, IncludedSecondPhotographer, IsActive, IsFeatured,
            DisplayOrder, CreatedAt, UpdatedAt
-    FROM PhotographyPackage WHERE IsActive = 1 AND IsDeleted = 0
+    FROM PhotographyPackage WHERE IsActive = 1 AND RowState = 'Active'
     ORDER BY DisplayOrder;
 END;
 
@@ -532,12 +532,12 @@ BEGIN
            IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel, IncludedSecondPhotographer, IsActive, IsFeatured,
            DisplayOrder, CreatedAt, UpdatedAt
     FROM PhotographyPackage
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY DisplayOrder, CreatedAt DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 
-    SELECT COUNT(*) AS TotalCount FROM PhotographyPackage WHERE IsDeleted = 0;
+    SELECT COUNT(*) AS TotalCount FROM PhotographyPackage WHERE RowState = 'Active';
 END;
 
 CREATE PROCEDURE usp_PhotographyPackage_Delete
@@ -594,7 +594,7 @@ AS
 BEGIN
     SELECT ComponentID, PackageID, ComponentType, ComponentName, ComponentDescription, Quantity, Unit, AddedValue,
            IsIncludedByDefault, DisplayOrder, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM PackageComponent WHERE ComponentID = @Id AND IsDeleted = 0;
+    FROM PackageComponent WHERE ComponentID = @Id;
 END;
 
 CREATE PROCEDURE usp_PackageComponent_GetByPackage
@@ -603,7 +603,7 @@ AS
 BEGIN
     SELECT ComponentID, PackageID, ComponentType, ComponentName, ComponentDescription, Quantity, Unit, AddedValue,
            IsIncludedByDefault, DisplayOrder, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM PackageComponent WHERE PackageID = @PackageId AND IsDeleted = 0
+    FROM PackageComponent WHERE PackageID = @PackageId AND RowState = 'Active'
     ORDER BY DisplayOrder;
 END;
 
@@ -655,7 +655,7 @@ CREATE PROCEDURE usp_PackageAddOn_GetById
 AS
 BEGIN
     SELECT AddOnID, PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM PackageAddOn WHERE AddOnID = @Id AND IsDeleted = 0;
+    FROM PackageAddOn WHERE AddOnID = @Id;
 END;
 
 CREATE PROCEDURE usp_PackageAddOn_GetByPackage
@@ -663,7 +663,7 @@ CREATE PROCEDURE usp_PackageAddOn_GetByPackage
 AS
 BEGIN
     SELECT AddOnID, PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM PackageAddOn WHERE PackageID = @PackageId AND IsActive = 1 AND IsDeleted = 0
+    FROM PackageAddOn WHERE PackageID = @PackageId AND IsActive = 1 AND RowState = 'Active'
     ORDER BY DisplayOrder;
 END;
 
@@ -712,7 +712,7 @@ CREATE PROCEDURE usp_PackageDiscount_GetById
 AS
 BEGIN
     SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
-    FROM PackageDiscount WHERE DiscountID = @Id AND IsDeleted = 0;
+    FROM PackageDiscount WHERE DiscountID = @Id;
 END;
 
 CREATE PROCEDURE usp_PackageDiscount_GetByPackage
@@ -720,7 +720,7 @@ CREATE PROCEDURE usp_PackageDiscount_GetByPackage
 AS
 BEGIN
     SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
-    FROM PackageDiscount WHERE PackageID = @PackageId AND IsDeleted = 0
+    FROM PackageDiscount WHERE PackageID = @PackageId AND RowState = 'Active'
     ORDER BY DiscountName;
 END;
 
@@ -733,7 +733,7 @@ BEGIN
 
     SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
     FROM PackageDiscount
-    WHERE PackageID = @PackageId AND IsActive = 1 AND IsDeleted = 0
+    WHERE PackageID = @PackageId AND IsActive = 1 AND RowState = 'Active'
       AND (@ValidFrom IS NULL OR ValidFrom <= @CurrentDate)
       AND (@ValidTo IS NULL OR ValidTo >= @CurrentDate);
 END;
@@ -798,12 +798,12 @@ AS
 BEGIN
     SELECT ClientID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
     FROM ClientInfo
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY CreatedAt DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 
-    SELECT COUNT(*) AS TotalCount FROM ClientInfo WHERE IsDeleted = 0;
+    SELECT COUNT(*) AS TotalCount FROM ClientInfo WHERE RowState = 'Active';
 END;
 
 CREATE PROCEDURE usp_ClientInfo_GetDeleted
@@ -870,7 +870,7 @@ CREATE PROCEDURE usp_Booking_GetById
 AS
 BEGIN
     SELECT BookingID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted, DepositAmount, DepositPaid
-    FROM Booking WHERE BookingID = @Id AND IsDeleted = 0;
+    FROM Booking WHERE BookingID = @Id;
 END;
 
 CREATE PROCEDURE usp_Booking_GetPaged
@@ -880,12 +880,12 @@ AS
 BEGIN
     SELECT BookingID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Booking
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY BookingDate DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 
-    SELECT COUNT(*) AS TotalCount FROM Booking WHERE IsDeleted = 0;
+    SELECT COUNT(*) AS TotalCount FROM Booking WHERE RowState = 'Active';
 END;
 
 CREATE PROCEDURE usp_Booking_GetByDateRange
@@ -895,18 +895,17 @@ AS
 BEGIN
     SELECT BookingID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Booking
-    WHERE BookingDate BETWEEN @StartDate AND @EndDate AND IsDeleted = 0
+    WHERE BookingDate BETWEEN @StartDate AND @EndDate AND RowState = 'Active'
     ORDER BY BookingDate;
 END;
 
 CREATE PROCEDURE usp_Booking_Delete
-    @Id INT,
-    @DeletedBy INT
+    @Id INT
 AS
 BEGIN
     UPDATE Booking
-    SET IsDeleted = 1, DeletedBy = @DeletedBy, DeletedAt = GETUTCDATE()
-    WHERE BookingID = @Id AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE BookingID = @Id AND RowState != 'Deleted';
 END;
 
 -- ============================================
@@ -945,7 +944,7 @@ CREATE PROCEDURE usp_BookingPackage_GetByBooking
 AS
 BEGIN
     SELECT BookingPackageID, BookingID, PackageID, SelectedAddOnsJson, AppliedDiscount, FinalPrice, PackageSnapshot, CampaignID, CreatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM BookingPackage WHERE BookingID = @BookingId AND IsDeleted = 0;
+    FROM BookingPackage WHERE BookingID = @BookingId;
 END;
 
 CREATE PROCEDURE usp_BookingPackage_GetByCampaign
@@ -953,7 +952,7 @@ CREATE PROCEDURE usp_BookingPackage_GetByCampaign
 AS
 BEGIN
     SELECT BookingPackageID, BookingID, PackageID, SelectedAddOnsJson, AppliedDiscount, FinalPrice, PackageSnapshot, CampaignID, CreatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM BookingPackage WHERE CampaignID = @CampaignID AND IsDeleted = 0
+    FROM BookingPackage WHERE CampaignID = @CampaignID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -993,7 +992,7 @@ AS
 BEGIN
     SELECT BlockID, BookingID, BlockStart, BlockEnd, Status, BlockReason, CreatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM CalendarBlock
-    WHERE BlockStart < @EndDate AND BlockEnd > @StartDate AND IsDeleted = 0
+    WHERE BlockStart < @EndDate AND BlockEnd > @StartDate AND RowState = 'Active'
     ORDER BY BlockStart;
 END;
 
@@ -1103,7 +1102,7 @@ BEGIN
             DueDate = @DueDate, Notes = @Notes, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
             AssignedTo = @AssignedTo, AssignedAt = @AssignedAt, CompletedBy = @CompletedBy, CompletedAt = @CompletedAt,
             DeletedBy = @DeletedBy, DeletedAt = @DeletedAt, IsDeleted = @IsDeleted
-        WHERE TaskID = @Id AND IsDeleted = 0;
+        WHERE TaskID = @Id;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -1115,7 +1114,7 @@ BEGIN
     SELECT TaskID, BookingID, Title, Description, Status, Priority, DueDate, Notes,
            CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, AssignedTo, AssignedAt, CompletedBy, CompletedAt,
            DeletedBy, DeletedAt, IsDeleted
-    FROM DailyTask WHERE TaskID = @Id AND IsDeleted = 0;
+    FROM DailyTask WHERE TaskID = @Id;
 END;
 
 CREATE PROCEDURE usp_DailyTask_GetByStatus
@@ -1125,7 +1124,7 @@ BEGIN
     SELECT TaskID, BookingID, Title, Description, Status, Priority, DueDate, Notes,
            CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, AssignedTo, AssignedAt, CompletedBy, CompletedAt,
            DeletedBy, DeletedAt, IsDeleted
-    FROM DailyTask WHERE Status = @Status AND IsDeleted = 0
+    FROM DailyTask WHERE Status = @Status AND RowState = 'Active'
     ORDER BY Priority DESC, DueDate ASC;
 END;
 
@@ -1137,7 +1136,7 @@ BEGIN
            CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, AssignedTo, AssignedAt, CompletedBy, CompletedAt,
            DeletedBy, DeletedAt, IsDeleted
     FROM DailyTask
-    WHERE CAST(DueDate AS DATE) = CAST(@Date AS DATE) AND IsDeleted = 0
+    WHERE CAST(DueDate AS DATE) = CAST(@Date AS DATE) AND RowState = 'Active'
     ORDER BY DueDate;
 END;
 
@@ -1150,22 +1149,21 @@ BEGIN
            CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, AssignedTo, AssignedAt, CompletedBy, CompletedAt,
            DeletedBy, DeletedAt, IsDeleted
     FROM DailyTask
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY DueDate DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 
-    SELECT COUNT(*) AS TotalCount FROM DailyTask WHERE IsDeleted = 0;
+    SELECT COUNT(*) AS TotalCount FROM DailyTask WHERE RowState = 'Active';
 END;
 
 CREATE PROCEDURE usp_DailyTask_Delete
-    @Id INT,
-    @DeletedBy INT
+    @Id INT
 AS
 BEGIN
     UPDATE DailyTask
-    SET IsDeleted = 1, DeletedBy = @DeletedBy, DeletedAt = GETUTCDATE()
-    WHERE TaskID = @Id AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE TaskID = @Id AND RowState != 'Deleted';
 END;
 
 -- ============================================
@@ -1200,7 +1198,7 @@ CREATE PROCEDURE usp_TaskComment_GetById
 AS
 BEGIN
     SELECT CommentID, TaskID, Comment, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM TaskComment WHERE CommentID = @Id AND IsDeleted = 0;
+    FROM TaskComment WHERE CommentID = @Id;
 END;
 
 CREATE PROCEDURE usp_TaskComment_GetByTask
@@ -1208,7 +1206,7 @@ CREATE PROCEDURE usp_TaskComment_GetByTask
 AS
 BEGIN
     SELECT CommentID, TaskID, Comment, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM TaskComment WHERE TaskID = @TaskId AND IsDeleted = 0
+    FROM TaskComment WHERE TaskID = @TaskId AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -1243,7 +1241,7 @@ CREATE PROCEDURE usp_BookingLog_GetByBooking
 AS
 BEGIN
     SELECT LogID, BookingID, Action, Timestamp, CreatedBy, DeletedBy, DeletedAt, IsDeleted
-    FROM BookingLog WHERE BookingID = @BookingId AND IsDeleted = 0
+    FROM BookingLog WHERE BookingID = @BookingId AND RowState = 'Active'
     ORDER BY Timestamp DESC;
 END;
 
@@ -1319,7 +1317,7 @@ BEGIN
         SET ClientID = @ClientID, BookingID = @BookingId, QuotationID = @QuotationId, InvoiceNumber = @InvoiceNumber, Amount = @Amount, TaxAmount = @TaxAmount, TotalAmount = @TotalAmount,
             Status = @Status, IssuedDate = @IssuedDate, DueDate = @DueDate, PaidDate = @PaidDate, PdfFileUrl = @PdfFileUrl, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
             IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
-        WHERE InvoiceID = @Id AND IsDeleted = 0;
+        WHERE InvoiceID = @Id;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -1329,7 +1327,7 @@ CREATE PROCEDURE usp_Invoice_GetById
 AS
 BEGIN
     SELECT InvoiceID, ClientID, BookingID, QuotationID, InvoiceNumber, Amount, TaxAmount, TotalAmount, Status, IssuedDate, DueDate, PaidDate, PdfFileUrl, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM Invoice WHERE InvoiceID = @Id AND IsDeleted = 0;
+    FROM Invoice WHERE InvoiceID = @Id;
 END;
 
 CREATE PROCEDURE usp_Invoice_GetByBooking
@@ -1337,7 +1335,7 @@ CREATE PROCEDURE usp_Invoice_GetByBooking
 AS
 BEGIN
     SELECT InvoiceID, ClientID, BookingID, QuotationID, InvoiceNumber, Amount, TaxAmount, TotalAmount, Status, IssuedDate, DueDate, PaidDate, PdfFileUrl, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM Invoice WHERE BookingID = @BookingId AND IsDeleted = 0;
+    FROM Invoice WHERE BookingID = @BookingId;
 END;
 
 CREATE PROCEDURE usp_Invoice_GetByClient
@@ -1345,7 +1343,7 @@ CREATE PROCEDURE usp_Invoice_GetByClient
 AS
 BEGIN
     SELECT InvoiceID, ClientID, BookingID, QuotationID, InvoiceNumber, Amount, TaxAmount, TotalAmount, Status, IssuedDate, DueDate, PaidDate, PdfFileUrl, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM Invoice WHERE ClientID = @ClientID AND IsDeleted = 0
+    FROM Invoice WHERE ClientID = @ClientID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -1399,7 +1397,7 @@ AS
 BEGIN
     SELECT MetadataID, PageType, PageID, PageTitle, MetaDescription, MetaKeywords, Slug, CanonicalUrl,
            OGTitle, OGDescription, OGImageUrl, SchemaMarkup, IsIndexed, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
-    FROM SEOMetadata WHERE MetadataID = @Id AND IsDeleted = 0;
+    FROM SEOMetadata WHERE MetadataID = @Id;
 END;
 
 CREATE PROCEDURE usp_SEOMetadata_GetBySlug
@@ -1408,7 +1406,7 @@ AS
 BEGIN
     SELECT MetadataID, PageType, PageID, PageTitle, MetaDescription, MetaKeywords, Slug, CanonicalUrl,
            OGTitle, OGDescription, OGImageUrl, SchemaMarkup, IsIndexed, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
-    FROM SEOMetadata WHERE Slug = @Slug AND IsDeleted = 0;
+    FROM SEOMetadata WHERE Slug = @Slug;
 END;
 
 CREATE PROCEDURE usp_SEOMetadata_GetByPageTypeAndId
@@ -1418,7 +1416,7 @@ AS
 BEGIN
     SELECT MetadataID, PageType, PageID, PageTitle, MetaDescription, MetaKeywords, Slug, CanonicalUrl,
            OGTitle, OGDescription, OGImageUrl, SchemaMarkup, IsIndexed, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
-    FROM SEOMetadata WHERE PageType = @PageType AND PageID = @PageId AND IsDeleted = 0;
+    FROM SEOMetadata WHERE PageType = @PageType AND PageID = @PageId;
 END;
 
 CREATE PROCEDURE usp_SEOMetadata_Delete
@@ -1490,7 +1488,7 @@ BEGIN
         SET EventName = @EventName, EventDate = @EventDate, Location = @Location, Description = @Description,
             Status = @Status, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(), EventType = @EventType,
             IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
-        WHERE EventID = @Id AND IsDeleted = 0;
+        WHERE EventID = @Id;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -1500,7 +1498,7 @@ CREATE PROCEDURE usp_Event_GetById
 AS
 BEGIN
     SELECT EventID, EventName, EventDate, Location, Description, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, Status, IsDeleted, EventType
-    FROM Event WHERE EventID = @Id AND IsDeleted = 0;
+    FROM Event WHERE EventID = @Id;
 END;
 
 CREATE PROCEDURE usp_Event_GetByType
@@ -1509,7 +1507,7 @@ AS
 BEGIN
     SELECT EventID, EventName, EventDate, Location, Description, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, Status, EventType, IsDeleted
     FROM Event
-    WHERE EventType = @EventType AND IsDeleted = 0
+    WHERE EventType = @EventType AND RowState = 'Active'
     ORDER BY EventDate DESC;
 END;
 
@@ -1518,7 +1516,7 @@ CREATE PROCEDURE usp_Event_GetByUserId
 AS
 BEGIN
     SELECT EventID, EventName, EventDate, Location, Description, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, Status, IsDeleted
-    FROM Event WHERE CreatedBy = @UserId AND IsDeleted = 0
+    FROM Event WHERE CreatedBy = @UserId AND RowState = 'Active'
     ORDER BY EventDate DESC;
 END;
 
@@ -1529,22 +1527,21 @@ AS
 BEGIN
     SELECT EventID, EventName, EventDate, Location, Description, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, Status, IsDeleted
     FROM Event
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY EventDate DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 
-    SELECT COUNT(*) AS TotalCount FROM Event WHERE IsDeleted = 0;
+    SELECT COUNT(*) AS TotalCount FROM Event WHERE RowState = 'Active';
 END;
 
 CREATE PROCEDURE usp_Event_Delete
-    @Id INT,
-    @DeletedBy INT
+    @Id INT
 AS
 BEGIN
     UPDATE Event
-    SET IsDeleted = 1, DeletedBy = @DeletedBy, DeletedAt = GETUTCDATE()
-    WHERE EventID = @Id AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE EventID = @Id AND RowState != 'Deleted';
 END;
 
 -- ============================================
@@ -1578,7 +1575,7 @@ BEGIN
         UPDATE Quotation
         SET EventID = @EventId, ClientEmail = @ClientEmail, ClientName = @ClientName, ValidUntil = @ValidUntil, SubTotal = @SubTotal,
             TaxAmount = @TaxAmount, TotalAmount = @TotalAmount, Status = @Status, Notes = @Notes, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
-        WHERE QuotationID = @Id AND IsDeleted = 0;
+        WHERE QuotationID = @Id;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -1589,7 +1586,7 @@ AS
 BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount,
            TotalAmount, Status, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM Quotation WHERE QuotationID = @Id AND IsDeleted = 0;
+    FROM Quotation WHERE QuotationID = @Id;
 END;
 
 CREATE PROCEDURE usp_Quotation_GetByEvent
@@ -1598,7 +1595,7 @@ AS
 BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount,
            TotalAmount, Status, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM Quotation WHERE EventID = @EventId AND IsDeleted = 0
+    FROM Quotation WHERE EventID = @EventId AND RowState = 'Active'
     ORDER BY QuotationDate DESC;
 END;
 
@@ -1608,7 +1605,7 @@ AS
 BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount,
            TotalAmount, Status, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM Quotation WHERE ClientEmail = @ClientEmail AND IsDeleted = 0
+    FROM Quotation WHERE ClientEmail = @ClientEmail AND RowState = 'Active'
     ORDER BY QuotationDate DESC;
 END;
 
@@ -1620,12 +1617,12 @@ BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount,
            TotalAmount, Status, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Quotation
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY QuotationDate DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 
-    SELECT COUNT(*) AS TotalCount FROM Quotation WHERE IsDeleted = 0;
+    SELECT COUNT(*) AS TotalCount FROM Quotation WHERE RowState = 'Active';
 END;
 
 CREATE PROCEDURE usp_Quotation_Delete
@@ -1633,8 +1630,8 @@ CREATE PROCEDURE usp_Quotation_Delete
 AS
 BEGIN
     UPDATE Quotation
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), UpdatedAt = GETUTCDATE()
-    WHERE QuotationID = @Id;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE QuotationID = @Id AND RowState != 'Deleted';
 END;
 
 -- ============================================
@@ -1699,7 +1696,7 @@ BEGIN
         SELECT @EventId = q.EventID, @TotalAmount = q.TotalAmount, @PhotographerUserId = e.CreatedByUserID
         FROM Quotation q
         INNER JOIN Event e ON q.EventID = e.EventID
-        WHERE q.QuotationID = @QuotationId AND q.IsDeleted = 0 AND q.Status = 'Accepted';
+        WHERE q.QuotationID = @QuotationId AND q.RowState = 'Active' AND q.Status = 'Accepted';
 
         IF @EventId IS NULL
             THROW 50001, 'Quotation not found or not in Accepted status', 1;
@@ -2083,8 +2080,8 @@ CREATE PROCEDURE usp_GalleryAccess_Revoke
 AS
 BEGIN
     UPDATE GalleryAccess
-    SET IsDeleted = 1, DeletedBy = @DeletedBy, DeletedAt = GETUTCDATE()
-    WHERE GalleryID = @GalleryId AND UserID = @UserId AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE GalleryID = @GalleryId AND RowState != 'Deleted' AND UserID = @UserId;
 END;
 
 CREATE PROCEDURE usp_GalleryAccess_GetByGallery
@@ -2094,7 +2091,7 @@ BEGIN
     SELECT ga.AccessID, ga.GalleryID, ga.UserID, u.FullName, u.Email, ga.AccessLevel, ga.GrantedAt, ga.DeletedBy, ga.DeletedAt, ga.IsDeleted
     FROM GalleryAccess ga
     INNER JOIN Users u ON ga.UserID = u.UserID
-    WHERE ga.GalleryID = @GalleryId AND ga.IsDeleted = 0
+    WHERE ga.GalleryID = @GalleryId AND ga.RowState = 'Active'
     ORDER BY u.FullName;
 END;
 
@@ -2122,7 +2119,7 @@ BEGIN
         UPDATE Asset
         SET AssetType = @AssetType, EntityType = @EntityType, EntityID = @EntityID, FilePath = @FilePath, FileName = @FileName,
             FileSize = @FileSize, MimeType = @MimeType, Description = @Description, UpdatedAt = GETUTCDATE()
-        WHERE AssetID = @Id AND IsDeleted = 0;
+        WHERE AssetID = @Id;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -2132,7 +2129,7 @@ CREATE PROCEDURE usp_Asset_GetById
 AS
 BEGIN
     SELECT AssetID, AssetType, EntityType, EntityID, FilePath, FileName, FileSize, MimeType, Description, UploadedByUserID, IsDeleted, DeletedAt, CreatedAt, UpdatedAt
-    FROM Asset WHERE AssetID = @Id AND IsDeleted = 0;
+    FROM Asset WHERE AssetID = @Id;
 END;
 
 CREATE PROCEDURE usp_Asset_GetByEntity
@@ -2141,7 +2138,7 @@ CREATE PROCEDURE usp_Asset_GetByEntity
 AS
 BEGIN
     SELECT AssetID, AssetType, EntityType, EntityID, FilePath, FileName, FileSize, MimeType, Description, UploadedByUserID, IsDeleted, DeletedAt, CreatedAt, UpdatedAt
-    FROM Asset WHERE EntityType = @EntityType AND EntityID = @EntityID AND IsDeleted = 0
+    FROM Asset WHERE EntityType = @EntityType AND EntityID = @EntityID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -2150,7 +2147,7 @@ CREATE PROCEDURE usp_Asset_GetByAssetType
 AS
 BEGIN
     SELECT AssetID, AssetType, EntityType, EntityID, FilePath, FileName, FileSize, MimeType, Description, UploadedByUserID, IsDeleted, DeletedAt, CreatedAt, UpdatedAt
-    FROM Asset WHERE AssetType = @AssetType AND IsDeleted = 0
+    FROM Asset WHERE AssetType = @AssetType AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -2159,8 +2156,8 @@ CREATE PROCEDURE usp_Asset_Delete
 AS
 BEGIN
     UPDATE Asset
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE()
-    WHERE AssetID = @Id AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE AssetID = @Id AND RowState != 'Deleted';
 END;
 
 -- ============================================
@@ -2189,7 +2186,7 @@ BEGIN
         UPDATE Expense
         SET BookingID = @BookingID, EventID = @EventID, ExpenseType = @ExpenseType, Description = @Description, Amount = @Amount, Currency = @Currency,
             Status = @Status, ReceiptAssetID = @ReceiptAssetID, ApprovedByUserID = @ApprovedByUserID, ApprovedDate = @ApprovedDate, UpdatedAt = GETUTCDATE()
-        WHERE ExpenseID = @Id AND IsDeleted = 0;
+        WHERE ExpenseID = @Id;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -2199,7 +2196,7 @@ CREATE PROCEDURE usp_Expense_GetById
 AS
 BEGIN
     SELECT ExpenseID, BookingID, EventID, ExpenseType, Description, Amount, Currency, Status, ReceiptAssetID, CreatedByUserID, ApprovedByUserID, ApprovedDate, IsDeleted, DeletedAt, CreatedAt, UpdatedAt
-    FROM Expense WHERE ExpenseID = @Id AND IsDeleted = 0;
+    FROM Expense WHERE ExpenseID = @Id;
 END;
 
 CREATE PROCEDURE usp_Expense_GetByBooking
@@ -2207,7 +2204,7 @@ CREATE PROCEDURE usp_Expense_GetByBooking
 AS
 BEGIN
     SELECT ExpenseID, BookingID, EventID, ExpenseType, Description, Amount, Currency, Status, ReceiptAssetID, CreatedByUserID, ApprovedByUserID, ApprovedDate, IsDeleted, DeletedAt, CreatedAt, UpdatedAt
-    FROM Expense WHERE BookingID = @BookingID AND IsDeleted = 0
+    FROM Expense WHERE BookingID = @BookingID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -2216,7 +2213,7 @@ CREATE PROCEDURE usp_Expense_GetByEvent
 AS
 BEGIN
     SELECT ExpenseID, BookingID, EventID, ExpenseType, Description, Amount, Currency, Status, ReceiptAssetID, CreatedByUserID, ApprovedByUserID, ApprovedDate, IsDeleted, DeletedAt, CreatedAt, UpdatedAt
-    FROM Expense WHERE EventID = @EventID AND IsDeleted = 0
+    FROM Expense WHERE EventID = @EventID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -2225,7 +2222,7 @@ CREATE PROCEDURE usp_Expense_GetByStatus
 AS
 BEGIN
     SELECT ExpenseID, BookingID, EventID, ExpenseType, Description, Amount, Currency, Status, ReceiptAssetID, CreatedByUserID, ApprovedByUserID, ApprovedDate, IsDeleted, DeletedAt, CreatedAt, UpdatedAt
-    FROM Expense WHERE Status = @Status AND IsDeleted = 0
+    FROM Expense WHERE Status = @Status AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -2234,7 +2231,7 @@ CREATE PROCEDURE usp_Expense_GetByExpenseType
 AS
 BEGIN
     SELECT ExpenseID, BookingID, EventID, ExpenseType, Description, Amount, Currency, Status, ReceiptAssetID, CreatedByUserID, ApprovedByUserID, ApprovedDate, IsDeleted, DeletedAt, CreatedAt, UpdatedAt
-    FROM Expense WHERE ExpenseType = @ExpenseType AND IsDeleted = 0
+    FROM Expense WHERE ExpenseType = @ExpenseType AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -2242,7 +2239,7 @@ CREATE PROCEDURE usp_Expense_GetAll
 AS
 BEGIN
     SELECT ExpenseID, BookingID, EventID, ExpenseType, Description, Amount, Currency, Status, ReceiptAssetID, CreatedByUserID, ApprovedByUserID, ApprovedDate, IsDeleted, DeletedAt, CreatedAt, UpdatedAt
-    FROM Expense WHERE IsDeleted = 0
+    FROM Expense WHERE RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -2253,7 +2250,7 @@ AS
 BEGIN
     UPDATE Expense
     SET Status = 'Approved', ApprovedByUserID = @ApprovedByUserID, ApprovedDate = GETUTCDATE(), UpdatedAt = GETUTCDATE()
-    WHERE ExpenseID = @ExpenseID AND IsDeleted = 0 AND Status = 'Pending';
+    WHERE ExpenseID = @ExpenseID AND RowState = 'Active' AND Status = 'Pending';
 END;
 
 CREATE PROCEDURE usp_Expense_RejectExpense
@@ -2262,7 +2259,7 @@ AS
 BEGIN
     UPDATE Expense
     SET Status = 'Rejected', UpdatedAt = GETUTCDATE()
-    WHERE ExpenseID = @ExpenseID AND IsDeleted = 0 AND Status = 'Pending';
+    WHERE ExpenseID = @ExpenseID AND RowState = 'Active' AND Status = 'Pending';
 END;
 
 CREATE PROCEDURE usp_Expense_MarkAsPaid
@@ -2271,7 +2268,7 @@ AS
 BEGIN
     UPDATE Expense
     SET Status = 'Paid', UpdatedAt = GETUTCDATE()
-    WHERE ExpenseID = @ExpenseID AND IsDeleted = 0 AND Status = 'Approved';
+    WHERE ExpenseID = @ExpenseID AND RowState = 'Active' AND Status = 'Approved';
 END;
 
 CREATE PROCEDURE usp_Expense_Delete
@@ -2279,8 +2276,8 @@ CREATE PROCEDURE usp_Expense_Delete
 AS
 BEGIN
     UPDATE Expense
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE()
-    WHERE ExpenseID = @Id AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE ExpenseID = @Id AND RowState != 'Deleted';
 END;
 
 -- ============================================
@@ -2331,7 +2328,7 @@ BEGIN
     SELECT CampaignID, CampaignName, Description, CampaignType, StartDate, EndDate, BannerImageUrl,
            DiscountType, DiscountValue, MaxApplicableAmount, TermsConditions, IsActive, DisplayOrder,
            CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM Campaign WHERE CampaignID = @Id AND IsDeleted = 0;
+    FROM Campaign WHERE CampaignID = @Id;
 END;
 
 CREATE PROCEDURE usp_Campaign_GetActive
@@ -2453,7 +2450,7 @@ CREATE PROCEDURE usp_CampaignPackage_GetById
 AS
 BEGIN
     SELECT CampaignPackageID, CampaignID, PackageID, IsApplicable, AppliedAt, RemovedAt, CreatedBy, DeletedBy, DeletedAt, IsDeleted
-    FROM CampaignPackage WHERE CampaignPackageID = @Id AND IsDeleted = 0;
+    FROM CampaignPackage WHERE CampaignPackageID = @Id;
 END;
 
 CREATE PROCEDURE usp_CampaignPackage_GetByCampaign
@@ -2461,7 +2458,7 @@ CREATE PROCEDURE usp_CampaignPackage_GetByCampaign
 AS
 BEGIN
     SELECT CampaignPackageID, CampaignID, PackageID, IsApplicable, AppliedAt, RemovedAt, CreatedBy, DeletedBy, DeletedAt, IsDeleted
-    FROM CampaignPackage WHERE CampaignID = @CampaignID AND IsApplicable = 1 AND IsDeleted = 0
+    FROM CampaignPackage WHERE CampaignID = @CampaignID AND IsApplicable = 1 AND RowState = 'Active'
     ORDER BY AppliedAt DESC;
 END;
 
@@ -2470,7 +2467,7 @@ CREATE PROCEDURE usp_CampaignPackage_GetByPackage
 AS
 BEGIN
     SELECT CampaignPackageID, CampaignID, PackageID, IsApplicable, AppliedAt, RemovedAt, CreatedBy, DeletedBy, DeletedAt, IsDeleted
-    FROM CampaignPackage WHERE PackageID = @PackageID AND IsApplicable = 1 AND IsDeleted = 0
+    FROM CampaignPackage WHERE PackageID = @PackageID AND IsApplicable = 1 AND RowState = 'Active'
     ORDER BY AppliedAt DESC;
 END;
 
@@ -2752,7 +2749,7 @@ AS
 BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount, TotalAmount, Status, Notes, ViewedAt, AcceptedAt, DeclinedAt, RejectionReason, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy
     FROM Quotation
-    WHERE QuotationID = @Id AND IsDeleted = 0;
+    WHERE QuotationID = @Id;
 END;
 
 CREATE OR ALTER PROCEDURE uspQuotationReadAll
@@ -2760,7 +2757,7 @@ AS
 BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount, TotalAmount, Status, Notes, ViewedAt, AcceptedAt, DeclinedAt, RejectionReason, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy
     FROM Quotation
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY QuotationDate DESC;
 END;
 
@@ -2771,7 +2768,7 @@ AS
 BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount, TotalAmount, Status, Notes, ViewedAt, AcceptedAt, DeclinedAt, RejectionReason, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy
     FROM Quotation
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY QuotationDate DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
@@ -2783,7 +2780,7 @@ AS
 BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount, TotalAmount, Status, Notes, ViewedAt, AcceptedAt, DeclinedAt, RejectionReason, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy
     FROM Quotation
-    WHERE EventID = @EventID AND IsDeleted = 0
+    WHERE EventID = @EventID AND RowState = 'Active'
     ORDER BY QuotationDate DESC;
 END;
 
@@ -2793,7 +2790,7 @@ AS
 BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount, TotalAmount, Status, Notes, ViewedAt, AcceptedAt, DeclinedAt, RejectionReason, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy
     FROM Quotation
-    WHERE ClientEmail = @ClientEmail AND IsDeleted = 0
+    WHERE ClientEmail = @ClientEmail AND RowState = 'Active'
     ORDER BY QuotationDate DESC;
 END;
 
@@ -2803,7 +2800,7 @@ AS
 BEGIN
     SELECT QuotationID, EventID, ClientEmail, ClientName, QuotationNumber, QuotationDate, ValidUntil, SubTotal, TaxAmount, TotalAmount, Status, Notes, ViewedAt, AcceptedAt, DeclinedAt, RejectionReason, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy
     FROM Quotation
-    WHERE Status = @Status AND IsDeleted = 0
+    WHERE Status = @Status AND RowState = 'Active'
     ORDER BY QuotationDate DESC;
 END;
 
@@ -2844,8 +2841,8 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE Quotation
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedByUserID
-    WHERE QuotationID = @QuotationID;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE QuotationID = @QuotationID AND RowState != 'Deleted';
 
     SELECT @QuotationID AS QuotationID;
 END;
@@ -2993,7 +2990,7 @@ AS
 BEGIN
     SELECT LocationFeeID, LocationName, City, State, ZipCode, TravelMinutes, SurchargeAmount, SurchargeType, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM LocationFee
-    WHERE LocationFeeID = @Id AND IsDeleted = 0;
+    WHERE LocationFeeID = @Id;
 END;
 
 CREATE OR ALTER PROCEDURE uspLocationFeeReadAll
@@ -3001,7 +2998,7 @@ AS
 BEGIN
     SELECT LocationFeeID, LocationName, City, State, ZipCode, TravelMinutes, SurchargeAmount, SurchargeType, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM LocationFee
-    WHERE IsActive = 1 AND IsDeleted = 0
+    WHERE IsActive = 1 AND RowState = 'Active'
     ORDER BY City ASC, LocationName ASC;
 END;
 
@@ -3011,7 +3008,7 @@ AS
 BEGIN
     SELECT LocationFeeID, LocationName, City, State, ZipCode, TravelMinutes, SurchargeAmount, SurchargeType, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM LocationFee
-    WHERE City = @City AND IsDeleted = 0
+    WHERE City = @City AND RowState = 'Active'
     ORDER BY LocationName ASC;
 END;
 
@@ -3021,7 +3018,7 @@ AS
 BEGIN
     SELECT LocationFeeID, LocationName, City, State, ZipCode, TravelMinutes, SurchargeAmount, SurchargeType, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM LocationFee
-    WHERE State = @State AND IsDeleted = 0
+    WHERE State = @State AND RowState = 'Active'
     ORDER BY City ASC, LocationName ASC;
 END;
 
@@ -3031,7 +3028,7 @@ AS
 BEGIN
     SELECT LocationFeeID, LocationName, City, State, ZipCode, TravelMinutes, SurchargeAmount, SurchargeType, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM LocationFee
-    WHERE SurchargeAmount = @SurchargeAmount AND IsDeleted = 0
+    WHERE SurchargeAmount = @SurchargeAmount AND RowState = 'Active'
     ORDER BY City ASC, LocationName ASC;
 END;
 
@@ -3043,8 +3040,8 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE LocationFee
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedByUserID
-    WHERE LocationFeeID = @LocationFeeID;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE LocationFeeID = @LocationFeeID AND RowState != 'Deleted';
 
     SELECT @LocationFeeID AS LocationFeeID;
 END;
@@ -3062,7 +3059,7 @@ BEGIN
 
     DECLARE @SurchargeAmount DECIMAL(10,2);
 
-    SELECT @SurchargeAmount = SurchargeAmount FROM LocationFee WHERE LocationFeeID = @LocationFeeID AND IsDeleted = 0;
+    SELECT @SurchargeAmount = SurchargeAmount FROM LocationFee WHERE LocationFeeID = @LocationFeeID;
 
     UPDATE Booking
     SET LocationFeeID = @LocationFeeID, TravelSurcharge = ISNULL(@SurchargeAmount, 0), UpdatedAt = GETUTCDATE()
@@ -3077,7 +3074,7 @@ AS
 BEGIN
     DECLARE @SurchargeAmount DECIMAL(10,2);
 
-    SELECT @SurchargeAmount = SurchargeAmount FROM LocationFee WHERE LocationFeeID = @LocationFeeID AND IsDeleted = 0;
+    SELECT @SurchargeAmount = SurchargeAmount FROM LocationFee WHERE LocationFeeID = @LocationFeeID;
 
     SELECT @SurchargeAmount AS SurchargeAmount;
 END;
@@ -3135,7 +3132,7 @@ BEGIN
 
     SELECT CommunicationID, EntityType, EntityID, FromUserID, ToClientID, ToEmail, Subject, Message, MessageType, Status, IsInternal, IsAutomatic, TemplateUsed, CreatedAt, SentAt, DeliveredAt, ReadAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Communication
-    WHERE CommunicationID = @CommunicationID AND IsDeleted = 0;
+    WHERE CommunicationID = @CommunicationID;
 END;
 
 CREATE OR ALTER PROCEDURE uspCommunicationReadAll
@@ -3145,7 +3142,7 @@ BEGIN
 
     SELECT CommunicationID, EntityType, EntityID, FromUserID, ToClientID, ToEmail, Subject, Message, MessageType, Status, IsInternal, IsAutomatic, TemplateUsed, CreatedAt, SentAt, DeliveredAt, ReadAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Communication
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3160,7 +3157,7 @@ BEGIN
 
     SELECT CommunicationID, EntityType, EntityID, FromUserID, ToClientID, ToEmail, Subject, Message, MessageType, Status, IsInternal, IsAutomatic, TemplateUsed, CreatedAt, SentAt, DeliveredAt, ReadAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Communication
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY CreatedAt DESC
     OFFSET @Offset ROWS
     FETCH NEXT @PageSize ROWS ONLY;
@@ -3175,7 +3172,7 @@ BEGIN
 
     SELECT CommunicationID, EntityType, EntityID, FromUserID, ToClientID, ToEmail, Subject, Message, MessageType, Status, IsInternal, IsAutomatic, TemplateUsed, CreatedAt, SentAt, DeliveredAt, ReadAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Communication
-    WHERE EntityType = @EntityType AND EntityID = @EntityID AND IsDeleted = 0
+    WHERE EntityType = @EntityType AND EntityID = @EntityID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3187,7 +3184,7 @@ BEGIN
 
     SELECT CommunicationID, EntityType, EntityID, FromUserID, ToClientID, ToEmail, Subject, Message, MessageType, Status, IsInternal, IsAutomatic, TemplateUsed, CreatedAt, SentAt, DeliveredAt, ReadAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Communication
-    WHERE ToClientID = @ToClientID AND IsDeleted = 0
+    WHERE ToClientID = @ToClientID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3199,7 +3196,7 @@ BEGIN
 
     SELECT CommunicationID, EntityType, EntityID, FromUserID, ToClientID, ToEmail, Subject, Message, MessageType, Status, IsInternal, IsAutomatic, TemplateUsed, CreatedAt, SentAt, DeliveredAt, ReadAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Communication
-    WHERE ToEmail = @ToEmail AND IsDeleted = 0
+    WHERE ToEmail = @ToEmail AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3211,7 +3208,7 @@ BEGIN
 
     SELECT CommunicationID, EntityType, EntityID, FromUserID, ToClientID, ToEmail, Subject, Message, MessageType, Status, IsInternal, IsAutomatic, TemplateUsed, CreatedAt, SentAt, DeliveredAt, ReadAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Communication
-    WHERE Status = @Status AND IsDeleted = 0
+    WHERE Status = @Status AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3222,7 +3219,7 @@ BEGIN
 
     SELECT CommunicationID, EntityType, EntityID, FromUserID, ToClientID, ToEmail, Subject, Message, MessageType, Status, IsInternal, IsAutomatic, TemplateUsed, CreatedAt, SentAt, DeliveredAt, ReadAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM Communication
-    WHERE (Status = 'Sent' OR Status != 'Read') AND IsDeleted = 0
+    WHERE (Status = 'Sent' OR Status != 'Read') AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3234,7 +3231,7 @@ BEGIN
 
     UPDATE Communication
     SET ReadAt = GETUTCDATE(), Status = 'Read', UpdatedAt = GETUTCDATE()
-    WHERE CommunicationID = @CommunicationID AND IsDeleted = 0;
+    WHERE CommunicationID = @CommunicationID;
 
     SELECT @CommunicationID AS CommunicationID;
 END;
@@ -3247,7 +3244,7 @@ BEGIN
 
     UPDATE Communication
     SET DeliveredAt = GETUTCDATE(), Status = 'Delivered', UpdatedAt = GETUTCDATE()
-    WHERE CommunicationID = @CommunicationID AND IsDeleted = 0;
+    WHERE CommunicationID = @CommunicationID;
 
     SELECT @CommunicationID AS CommunicationID;
 END;
@@ -3260,7 +3257,7 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE Communication
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedByUserID, UpdatedAt = GETUTCDATE()
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE(), UpdatedAt = GETUTCDATE()
     WHERE CommunicationID = @CommunicationID;
 
     SELECT @CommunicationID AS CommunicationID;
@@ -3292,7 +3289,7 @@ BEGIN
         UPDATE PortfolioShowcase
         SET EventID = @EventID, ServiceCategory = @ServiceCategory, BeforeGalleryID = @BeforeGalleryID, AfterGalleryID = @AfterGalleryID,
             Description = @Description, FeaturedRating = @FeaturedRating, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
-        WHERE ShowcaseID = @Id AND IsDeleted = 0;
+        WHERE ShowcaseID = @Id;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -3305,7 +3302,7 @@ BEGIN
 
     SELECT ShowcaseID, EventID, ServiceCategory, BeforeGalleryID, AfterGalleryID, Description, FeaturedRating, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM PortfolioShowcase
-    WHERE ShowcaseID = @Id AND IsDeleted = 0;
+    WHERE ShowcaseID = @Id;
 END;
 
 CREATE OR ALTER PROCEDURE uspPortfolioShowcaseReadAll
@@ -3315,7 +3312,7 @@ BEGIN
 
     SELECT ShowcaseID, EventID, ServiceCategory, BeforeGalleryID, AfterGalleryID, Description, FeaturedRating, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM PortfolioShowcase
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3331,7 +3328,7 @@ BEGIN
 
     SELECT ShowcaseID, EventID, ServiceCategory, BeforeGalleryID, AfterGalleryID, Description, FeaturedRating, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM PortfolioShowcase
-    WHERE IsDeleted = 0 AND (@ServiceCategory IS NULL OR ServiceCategory = @ServiceCategory)
+    WHERE RowState = 'Active' AND (@ServiceCategory IS NULL OR ServiceCategory = @ServiceCategory)
     ORDER BY CreatedAt DESC
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END;
@@ -3344,7 +3341,7 @@ BEGIN
 
     SELECT ShowcaseID, EventID, ServiceCategory, BeforeGalleryID, AfterGalleryID, Description, FeaturedRating, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM PortfolioShowcase
-    WHERE EventID = @EventID AND IsDeleted = 0
+    WHERE EventID = @EventID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3356,7 +3353,7 @@ BEGIN
 
     SELECT ShowcaseID, EventID, ServiceCategory, BeforeGalleryID, AfterGalleryID, Description, FeaturedRating, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM PortfolioShowcase
-    WHERE ServiceCategory = @ServiceCategory AND IsDeleted = 0
+    WHERE ServiceCategory = @ServiceCategory AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3368,7 +3365,7 @@ BEGIN
 
     SELECT ShowcaseID, EventID, ServiceCategory, BeforeGalleryID, AfterGalleryID, Description, FeaturedRating, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM PortfolioShowcase
-    WHERE FeaturedRating >= @MinimumRating AND IsDeleted = 0
+    WHERE FeaturedRating >= @MinimumRating AND RowState = 'Active'
     ORDER BY FeaturedRating DESC, CreatedAt DESC;
 END;
 
@@ -3380,8 +3377,8 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE PortfolioShowcase
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy, UpdatedAt = GETUTCDATE()
-    WHERE ShowcaseID = @ShowcaseID AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE ShowcaseID = @ShowcaseID AND RowState != 'Deleted';
 
     SELECT @ShowcaseID AS ShowcaseID;
 END;
@@ -3418,7 +3415,7 @@ BEGIN
         UPDATE EmailTemplate
         SET TemplateName = @TemplateName, TemplateType = @TemplateType, Subject = @Subject, HtmlBody = @HtmlBody,
             PlaceholderVariables = @PlaceholderVariables, IsActive = @IsActive, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
-        WHERE TemplateID = @Id AND IsDeleted = 0;
+        WHERE TemplateID = @Id;
 
         SELECT @Id AS TemplateID;
     END
@@ -3432,7 +3429,7 @@ BEGIN
 
     SELECT TemplateID, TemplateName, TemplateType, Subject, HtmlBody, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM EmailTemplate
-    WHERE TemplateID = @TemplateID AND IsDeleted = 0;
+    WHERE TemplateID = @TemplateID;
 END;
 
 CREATE PROCEDURE uspEmailTemplateReadAll
@@ -3442,7 +3439,7 @@ BEGIN
 
     SELECT TemplateID, TemplateName, TemplateType, Subject, HtmlBody, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
     FROM EmailTemplate
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3459,7 +3456,7 @@ BEGIN
     -- Get paged results
     SELECT TemplateID, TemplateName, TemplateType, Subject, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedAt
     FROM EmailTemplate
-    WHERE IsDeleted = 0 AND (@TemplateType IS NULL OR TemplateType = @TemplateType)
+    WHERE RowState = 'Active' AND (@TemplateType IS NULL OR TemplateType = @TemplateType)
     ORDER BY CreatedAt DESC
     OFFSET @Offset ROWS
     FETCH NEXT @PageSize ROWS ONLY;
@@ -3467,7 +3464,7 @@ BEGIN
     -- Get total count
     SELECT COUNT(*) AS TotalCount
     FROM EmailTemplate
-    WHERE IsDeleted = 0 AND (@TemplateType IS NULL OR TemplateType = @TemplateType);
+    WHERE RowState = 'Active' AND (@TemplateType IS NULL OR TemplateType = @TemplateType);
 END;
 
 CREATE PROCEDURE uspEmailTemplateGetByType
@@ -3478,7 +3475,7 @@ BEGIN
 
     SELECT TemplateID, TemplateName, TemplateType, Subject, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedAt
     FROM EmailTemplate
-    WHERE TemplateType = @TemplateType AND IsDeleted = 0
+    WHERE TemplateType = @TemplateType AND RowState = 'Active'
     ORDER BY TemplateName;
 END;
 
@@ -3489,7 +3486,7 @@ BEGIN
 
     SELECT TemplateID, TemplateName, TemplateType, Subject, HtmlBody, PlaceholderVariables, CreatedBy, CreatedAt, UpdatedAt
     FROM EmailTemplate
-    WHERE IsActive = 1 AND IsDeleted = 0
+    WHERE IsActive = 1 AND RowState = 'Active'
     ORDER BY TemplateName;
 END;
 
@@ -3501,7 +3498,7 @@ BEGIN
 
     SELECT TemplateID, TemplateName, TemplateType, Subject, HtmlBody, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
     FROM EmailTemplate
-    WHERE TemplateName = @TemplateName AND IsDeleted = 0;
+    WHERE TemplateName = @TemplateName;
 END;
 
 CREATE PROCEDURE uspEmailTemplateDelete
@@ -3512,8 +3509,8 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE EmailTemplate
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy, UpdatedAt = GETUTCDATE()
-    WHERE TemplateID = @TemplateID AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE TemplateID = @TemplateID AND RowState != 'Deleted';
 
     SELECT @TemplateID AS TemplateID;
 END;
@@ -3560,7 +3557,7 @@ BEGIN
 
     SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
-    WHERE ContractTemplateID = @ContractTemplateID AND IsDeleted = 0;
+    WHERE ContractTemplateID = @ContractTemplateID;
 END;
 
 CREATE PROCEDURE uspContractTemplateReadAll
@@ -3570,7 +3567,7 @@ BEGIN
 
     SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
-    WHERE IsActive = 1 AND IsDeleted = 0
+    WHERE IsActive = 1 AND RowState = 'Active'
     ORDER BY ContractName ASC;
 END;
 
@@ -3586,27 +3583,27 @@ BEGIN
     BEGIN
         SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
         FROM ContractTemplate
-        WHERE IsDeleted = 0
+        WHERE RowState = 'Active'
         ORDER BY ContractName ASC
         OFFSET (@PageNumber - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY;
 
         SELECT COUNT(*) AS TotalCount
         FROM ContractTemplate
-        WHERE IsDeleted = 0;
+        WHERE RowState = 'Active';
     END
     ELSE
     BEGIN
         SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
         FROM ContractTemplate
-        WHERE ServiceCategory = @ServiceCategory AND IsDeleted = 0
+        WHERE ServiceCategory = @ServiceCategory AND RowState = 'Active'
         ORDER BY ContractName ASC
         OFFSET (@PageNumber - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY;
 
         SELECT COUNT(*) AS TotalCount
         FROM ContractTemplate
-        WHERE ServiceCategory = @ServiceCategory AND IsDeleted = 0;
+        WHERE ServiceCategory = @ServiceCategory;
     END
 END;
 
@@ -3618,7 +3615,7 @@ BEGIN
 
     SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
-    WHERE ServiceCategory = @ServiceCategory AND IsActive = 1 AND IsDeleted = 0
+    WHERE ServiceCategory = @ServiceCategory AND IsActive = 1 AND RowState = 'Active'
     ORDER BY ContractName ASC;
 END;
 
@@ -3629,7 +3626,7 @@ BEGIN
 
     SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
-    WHERE IsActive = 1 AND IsDeleted = 0
+    WHERE IsActive = 1 AND RowState = 'Active'
     ORDER BY ServiceCategory ASC, ContractName ASC;
 END;
 
@@ -3641,19 +3638,18 @@ BEGIN
 
     SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
-    WHERE ContractName = @ContractName AND IsDeleted = 0;
+    WHERE ContractName = @ContractName;
 END;
 
 CREATE PROCEDURE uspContractTemplateDelete
-    @ContractTemplateID INT,
-    @DeletedBy INT
+    @ContractTemplateID INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
     UPDATE ContractTemplate
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy, LastUpdatedAt = GETUTCDATE()
-    WHERE ContractTemplateID = @ContractTemplateID AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE ContractTemplateID = @ContractTemplateID;
 
     SELECT @ContractTemplateID AS ContractTemplateID;
 END;
@@ -3706,7 +3702,7 @@ BEGIN
                 IsActive = @IsActive,
                 UpdatedBy = @UpdatedBy,
                 UpdatedAt = GETUTCDATE()
-            WHERE PricingRuleID = @Id AND IsDeleted = 0;
+            WHERE PricingRuleID = @Id;
 
             SELECT @Id AS PricingRuleID;
         END
@@ -3730,7 +3726,7 @@ BEGIN
         EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
         DeletedBy, DeletedAt, IsDeleted
     FROM PricingRule
-    WHERE PricingRuleID = @PricingRuleID AND IsDeleted = 0;
+    WHERE PricingRuleID = @PricingRuleID;
 END;
 
 CREATE PROCEDURE uspPricingRuleReadAll
@@ -3743,7 +3739,7 @@ BEGIN
         EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
         DeletedBy, DeletedAt, IsDeleted
     FROM PricingRule
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY RuleName ASC;
 END;
 
@@ -3764,7 +3760,7 @@ BEGIN
         EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
         DeletedBy, DeletedAt, IsDeleted
     FROM PricingRule
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
         AND (@ServiceCategory IS NULL OR ServiceCategory = @ServiceCategory)
         AND (@RuleType IS NULL OR RuleType = @RuleType)
         AND (@IsActive IS NULL OR IsActive = @IsActive)
@@ -3784,7 +3780,7 @@ BEGIN
         EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
         DeletedBy, DeletedAt, IsDeleted
     FROM PricingRule
-    WHERE RuleType = @RuleType AND IsActive = 1 AND IsDeleted = 0
+    WHERE RuleType = @RuleType AND IsActive = 1 AND RowState = 'Active'
     ORDER BY RuleName ASC;
 END;
 
@@ -3799,7 +3795,7 @@ BEGIN
         EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
         DeletedBy, DeletedAt, IsDeleted
     FROM PricingRule
-    WHERE ServiceCategory = @ServiceCategory AND IsActive = 1 AND IsDeleted = 0
+    WHERE ServiceCategory = @ServiceCategory AND IsActive = 1 AND RowState = 'Active'
     ORDER BY RuleName ASC;
 END;
 
@@ -3814,22 +3810,21 @@ BEGIN
         EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
         DeletedBy, DeletedAt, IsDeleted
     FROM PricingRule
-    WHERE IsActive = 1 AND IsDeleted = 0
+    WHERE IsActive = 1 AND RowState = 'Active'
         AND (EffectiveFrom IS NULL OR @Date >= EffectiveFrom)
         AND (EffectiveTo IS NULL OR @Date <= EffectiveTo)
     ORDER BY RuleName ASC;
 END;
 
 CREATE PROCEDURE uspPricingRuleDelete
-    @PricingRuleID INT,
-    @DeletedBy INT
+    @PricingRuleID INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
     UPDATE PricingRule
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy
-    WHERE PricingRuleID = @PricingRuleID AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE PricingRuleID = @PricingRuleID;
 
     SELECT @PricingRuleID AS PricingRuleID;
 END;
@@ -3869,7 +3864,7 @@ BEGIN
             CompletedAt = @CompletedAt,
             UpdatedBy = @UpdatedBy,
             UpdatedAt = GETUTCDATE()
-        WHERE DeliveryPackageID = @Id AND IsDeleted = 0;
+        WHERE DeliveryPackageID = @Id;
 
     SELECT @@IDENTITY AS DeliveryPackageID;
 END;
@@ -3885,7 +3880,7 @@ BEGIN
         DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
         UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM DeliveryPackage
-    WHERE DeliveryPackageID = @DeliveryPackageID AND IsDeleted = 0;
+    WHERE DeliveryPackageID = @DeliveryPackageID;
 END;
 
 CREATE PROCEDURE uspDeliveryPackageReadAll
@@ -3898,7 +3893,7 @@ BEGIN
         DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
         UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM DeliveryPackage
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3917,7 +3912,7 @@ BEGIN
         DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
         UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM DeliveryPackage
-    WHERE IsDeleted = 0
+    WHERE RowState = 'Active'
         AND (@BookingID IS NULL OR BookingID = @BookingID)
     ORDER BY CreatedAt DESC
     OFFSET @OffSet ROWS
@@ -3935,7 +3930,7 @@ BEGIN
         DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
         UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM DeliveryPackage
-    WHERE BookingID = @BookingID AND IsDeleted = 0
+    WHERE BookingID = @BookingID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -3949,7 +3944,7 @@ BEGIN
         DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
         UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM DeliveryPackage
-    WHERE IsCompleted = 0 AND IsDeleted = 0
+    WHERE IsCompleted = 0 AND RowState = 'Active'
     ORDER BY DeliveryDate ASC, CreatedAt DESC;
 END;
 
@@ -3964,20 +3959,19 @@ BEGIN
         DeliveryNotes, IsCompleted, CompletedAt, CreatedBy, CreatedAt, UpdatedBy,
         UpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM DeliveryPackage
-    WHERE DeliverableType = @DeliverableType AND IsDeleted = 0
+    WHERE DeliverableType = @DeliverableType AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
 CREATE PROCEDURE uspDeliveryPackageDelete
-    @DeliveryPackageID INT,
-    @DeletedBy INT
+    @DeliveryPackageID INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
     UPDATE DeliveryPackage
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy
-    WHERE DeliveryPackageID = @DeliveryPackageID AND IsDeleted = 0;
+    SET RowState = 'Deleted', UpdatedAt = GETUTCDATE()
+    WHERE DeliveryPackageID = @DeliveryPackageID;
 
     SELECT @DeliveryPackageID AS DeliveryPackageID;
 END;
@@ -3997,7 +3991,7 @@ BEGIN
         IsVIP, LifetimeValue, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy,
         DeletedAt, DeletedBy, IsDeleted
     FROM ClientInfo
-    WHERE IsVIP = 1 AND IsDeleted = 0
+    WHERE IsVIP = 1 AND RowState = 'Active'
     ORDER BY LifetimeValue DESC, FullName ASC;
 END;
 
@@ -4013,7 +4007,7 @@ BEGIN
         IsVIP, LifetimeValue, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy,
         DeletedAt, DeletedBy, IsDeleted
     FROM ClientInfo
-    WHERE PreferredPhotographerUserID = @PreferredPhotographerUserID AND IsDeleted = 0
+    WHERE PreferredPhotographerUserID = @PreferredPhotographerUserID AND RowState = 'Active'
     ORDER BY FullName ASC;
 END;
 
@@ -4031,7 +4025,7 @@ BEGIN
         UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted,
         AssignedToPhotographerUserID
     FROM Gallery
-    WHERE AssignedToPhotographerUserID = @AssignedToPhotographerUserID AND IsDeleted = 0
+    WHERE AssignedToPhotographerUserID = @AssignedToPhotographerUserID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
 
@@ -4048,7 +4042,8 @@ BEGIN
         UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted,
         AssignedToPhotographerUserID
     FROM Gallery
-    WHERE AssignedToPhotographerUserID IS NULL AND IsDeleted = 0
+    WHERE AssignedToPhotographerUserID IS NULL AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
+
 
