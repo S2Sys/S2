@@ -3530,18 +3530,23 @@ CREATE PROCEDURE uspContractTemplateUpsert
     @PlaceholderVariables NVARCHAR(500) = NULL,
     @IsActive BIT = 1,
     @CreatedBy INT = NULL,
-    @UpdatedBy INT = NULL
+    @LastUpdatedBy INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
     IF @Id = 0
-        INSERT INTO ContractTemplate (ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt)
-        VALUES (@ContractName, @ServiceCategory, @TemplateText, @PlaceholderVariables, @IsActive, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE());
+    BEGIN
+        IF @CreatedBy IS NULL
+            RAISERROR('CreatedBy is required for new records.', 16, 1);
+
+        INSERT INTO ContractTemplate (ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt)
+        VALUES (@ContractName, @ServiceCategory, @TemplateText, @PlaceholderVariables, @IsActive, @CreatedBy, GETUTCDATE(), @LastUpdatedBy, GETUTCDATE());
+    END
     ELSE
         UPDATE ContractTemplate
         SET ContractName = @ContractName, ServiceCategory = @ServiceCategory, TemplateText = @TemplateText,
-            PlaceholderVariables = @PlaceholderVariables, IsActive = @IsActive, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
+            PlaceholderVariables = @PlaceholderVariables, IsActive = @IsActive, LastUpdatedBy = @LastUpdatedBy, LastUpdatedAt = GETUTCDATE()
         WHERE ContractTemplateID = @Id;
 
     SELECT @@IDENTITY AS ContractTemplateID;
@@ -3553,7 +3558,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
     WHERE ContractTemplateID = @ContractTemplateID AND IsDeleted = 0;
 END;
@@ -3563,7 +3568,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
     WHERE IsActive = 1 AND IsDeleted = 0
     ORDER BY ContractName ASC;
@@ -3579,7 +3584,7 @@ BEGIN
 
     IF @ServiceCategory IS NULL
     BEGIN
-        SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+        SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
         FROM ContractTemplate
         WHERE IsDeleted = 0
         ORDER BY ContractName ASC
@@ -3592,7 +3597,7 @@ BEGIN
     END
     ELSE
     BEGIN
-        SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+        SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
         FROM ContractTemplate
         WHERE ServiceCategory = @ServiceCategory AND IsDeleted = 0
         ORDER BY ContractName ASC
@@ -3611,7 +3616,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
     WHERE ServiceCategory = @ServiceCategory AND IsActive = 1 AND IsDeleted = 0
     ORDER BY ContractName ASC;
@@ -3622,7 +3627,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
     WHERE IsActive = 1 AND IsDeleted = 0
     ORDER BY ServiceCategory ASC, ContractName ASC;
@@ -3634,7 +3639,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT ContractTemplateID, ContractName, ServiceCategory, TemplateText, PlaceholderVariables, IsActive, CreatedBy, CreatedAt, LastUpdatedBy, LastUpdatedAt, DeletedBy, DeletedAt, IsDeleted
     FROM ContractTemplate
     WHERE ContractName = @ContractName AND IsDeleted = 0;
 END;
@@ -3647,7 +3652,7 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE ContractTemplate
-    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy, UpdatedAt = GETUTCDATE()
+    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy, LastUpdatedAt = GETUTCDATE()
     WHERE ContractTemplateID = @ContractTemplateID AND IsDeleted = 0;
 
     SELECT @ContractTemplateID AS ContractTemplateID;
