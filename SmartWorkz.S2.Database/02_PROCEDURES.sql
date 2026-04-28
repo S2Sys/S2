@@ -172,6 +172,7 @@ END;
 
 CREATE PROCEDURE usp_Gallery_Upsert
     @Id INT = 0,
+    @BranchID INT,
     @GalleryTypeId INT,
     @EventId INT = NULL,
     @CreatedBy INT = NULL,
@@ -189,23 +190,20 @@ CREATE PROCEDURE usp_Gallery_Upsert
     @EndDate DATETIME = NULL,
     @ReviewStatus NVARCHAR(50) = 'Draft',
     @ClientApprovalDeadline DATETIME = NULL,
-    @ApprovedByUserID INT = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @ApprovedByUserID INT = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO Gallery (GalleryTypeID, EventID, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, Title, Description, Category, ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate, ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatus, ClientApprovalDeadline, ApprovedByUserID, ApprovedAt, IsDeleted, DeletedAt, DeletedBy)
-        VALUES (@GalleryTypeId, @EventId, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @Title, @Description, @Category, @ThumbnailUrl, @DisplayOrder, @IsFeatured, @IsPublished, @IsPrivate, 0, @RotationSpeed, @StartDate, @EndDate, @ReviewStatus, @ClientApprovalDeadline, @ApprovedByUserID, CASE WHEN @ApprovedByUserID IS NOT NULL THEN GETUTCDATE() ELSE NULL END, @IsDeleted, @DeletedAt, @DeletedBy);
+        INSERT INTO Gallery (BranchID, GalleryTypeID, EventID, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, Title, Description, Category, ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate, ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatus, ClientApprovalDeadline, ApprovedByUserID, ApprovedAt, RowState)
+        VALUES (@BranchID, @GalleryTypeId, @EventId, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @Title, @Description, @Category, @ThumbnailUrl, @DisplayOrder, @IsFeatured, @IsPublished, @IsPrivate, 0, @RotationSpeed, @StartDate, @EndDate, @ReviewStatus, @ClientApprovalDeadline, @ApprovedByUserID, CASE WHEN @ApprovedByUserID IS NOT NULL THEN GETUTCDATE() ELSE NULL END, 'Active');
     ELSE
         UPDATE Gallery
         SET GalleryTypeID = @GalleryTypeId, EventID = @EventId, Title = @Title, Description = @Description, Category = @Category,
             ThumbnailUrl = @ThumbnailUrl, DisplayOrder = @DisplayOrder, IsFeatured = @IsFeatured, IsPublished = @IsPublished, IsPrivate = @IsPrivate,
             RotationSpeed = @RotationSpeed, StartDate = @StartDate, EndDate = @EndDate, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
-            ReviewStatus = @ReviewStatus, ClientApprovalDeadline = @ClientApprovalDeadline, ApprovedByUserID = @ApprovedByUserID, ApprovedAt = CASE WHEN @ApprovedByUserID IS NOT NULL THEN GETUTCDATE() ELSE ApprovedAt END,
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
-        WHERE GalleryID = @Id;
+            ReviewStatus = @ReviewStatus, ClientApprovalDeadline = @ClientApprovalDeadline, ApprovedByUserID = @ApprovedByUserID, ApprovedAt = CASE WHEN @ApprovedByUserID IS NOT NULL THEN GETUTCDATE() ELSE ApprovedAt END
+        WHERE GalleryID = @Id AND BranchID = @BranchID;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -217,8 +215,7 @@ AS
 BEGIN
     SELECT g.GalleryID, g.GalleryTypeID, gt.TypeName, g.EventID, g.CreatedBy, g.CreatedAt, g.UpdatedBy, g.UpdatedAt, g.Title, g.Description, g.Category,
             g.ThumbnailUrl, g.DisplayOrder, g.IsFeatured, g.IsPublished, g.IsPrivate, g.ViewCount,
-            g.RotationSpeed, g.StartDate, g.EndDate, g.ReviewStatus, g.ClientApprovalDeadline, g.ApprovedByUserID, g.ApprovedAt,
-            g.DeletedBy, g.DeletedAt, g.IsDeleted
+            g.RotationSpeed, g.StartDate, g.EndDate, g.ReviewStatus, g.ClientApprovalDeadline, g.ApprovedByUserID, g.ApprovedAt, g.RowState
     FROM Gallery g
     INNER JOIN GalleryType gt ON g.GalleryTypeID = gt.GalleryTypeID
     WHERE g.GalleryID = @Id AND g.BranchID = @BranchID AND g.RowState = 'Active';
@@ -346,21 +343,18 @@ CREATE PROCEDURE usp_GalleryAsset_Upsert
     @DisplayOrder INT = 0,
     @CreatedBy INT,
     @AssetStatus NVARCHAR(50) = 'Original',
-    @RetouchNotes NVARCHAR(MAX) = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @RetouchNotes NVARCHAR(MAX) = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO GalleryAsset (GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, CreatedBy, UploadedAt, AssetStatus, RetouchNotes, IsDeleted, DeletedAt, DeletedBy)
-        VALUES (@GalleryId, @AssetType, @MediaUrl, @ThumbnailUrl, @LinkUrl, @AltText, @Caption, @DurationMinutes, @DisplayOrder, @CreatedBy, GETUTCDATE(), @AssetStatus, @RetouchNotes, @IsDeleted, @DeletedAt, @DeletedBy);
+        INSERT INTO GalleryAsset (GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, CreatedBy, UploadedAt, AssetStatus, RetouchNotes, RowState)
+        VALUES (@GalleryId, @AssetType, @MediaUrl, @ThumbnailUrl, @LinkUrl, @AltText, @Caption, @DurationMinutes, @DisplayOrder, @CreatedBy, GETUTCDATE(), @AssetStatus, @RetouchNotes, 'Active');
     ELSE
         UPDATE GalleryAsset
         SET GalleryID = @GalleryId, AssetType = @AssetType, MediaUrl = @MediaUrl, ThumbnailUrl = @ThumbnailUrl,
             LinkUrl = @LinkUrl, AltText = @AltText, Caption = @Caption, DurationMinutes = @DurationMinutes,
-            DisplayOrder = @DisplayOrder, AssetStatus = @AssetStatus, RetouchNotes = @RetouchNotes,
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
+            DisplayOrder = @DisplayOrder, AssetStatus = @AssetStatus, RetouchNotes = @RetouchNotes, UpdatedAt = GETUTCDATE()
         WHERE AssetID = @Id;
 
     SELECT @@IDENTITY AS Id;
@@ -370,7 +364,7 @@ CREATE PROCEDURE usp_GalleryAsset_GetByGallery
     @GalleryId INT
 AS
 BEGIN
-    SELECT AssetID, GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, CreatedBy, UploadedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT AssetID, GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, CreatedBy, UploadedAt, AssetStatus, RowState
     FROM GalleryAsset
     WHERE GalleryID = @GalleryId AND RowState = 'Active'
     ORDER BY DisplayOrder;
@@ -380,7 +374,7 @@ CREATE PROCEDURE usp_GalleryAsset_GetById
     @Id INT
 AS
 BEGIN
-    SELECT AssetID, GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, AssetStatus, RetouchNotes, DeletedBy, DeletedAt, IsDeleted
+    SELECT AssetID, GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, AssetStatus, RetouchNotes, UploadedAt, RowState
     FROM GalleryAsset
     WHERE AssetID = @Id;
 END;
@@ -476,6 +470,7 @@ END;
 
 CREATE PROCEDURE usp_PhotographyPackage_Upsert
     @Id INT = 0,
+    @BranchID INT,
     @PackageName NVARCHAR(255),
     @PackageDescription NVARCHAR(MAX) = NULL,
     @BasePrice DECIMAL(10,2),
@@ -492,30 +487,25 @@ CREATE PROCEDURE usp_PhotographyPackage_Upsert
     @IsFeatured BIT = 0,
     @DisplayOrder INT = 0,
     @CreatedBy INT = NULL,
-    @UpdatedBy INT = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @UpdatedBy INT = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO PhotographyPackage (PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages,
+        INSERT INTO PhotographyPackage (BranchID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages,
                                        MaxVideoDurationMinutes, IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel,
-                                       IncludedSecondPhotographer, IsActive, IsFeatured, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
-                                       IsDeleted, DeletedAt, DeletedBy)
-        VALUES (@PackageName, @PackageDescription, @BasePrice, @Currency, @DurationHours, @MaxGalleryImages,
+                                       IncludedSecondPhotographer, IsActive, IsFeatured, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState)
+        VALUES (@BranchID, @PackageName, @PackageDescription, @BasePrice, @Currency, @DurationHours, @MaxGalleryImages,
                 @MaxVideoDurationMinutes, @IncludedRawFiles, @IncludedAlbum, @IncludedRetouching, @RetouchingLevel,
-                @IncludedSecondPhotographer, @IsActive, @IsFeatured, @DisplayOrder, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(),
-                @IsDeleted, @DeletedAt, @DeletedBy);
+                @IncludedSecondPhotographer, @IsActive, @IsFeatured, @DisplayOrder, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 'Active');
     ELSE
         UPDATE PhotographyPackage
         SET PackageName = @PackageName, PackageDescription = @PackageDescription, BasePrice = @BasePrice, Currency = @Currency,
             DurationHours = @DurationHours, MaxGalleryImages = @MaxGalleryImages, MaxVideoDurationMinutes = @MaxVideoDurationMinutes,
             IncludedRawFiles = @IncludedRawFiles, IncludedAlbum = @IncludedAlbum, IncludedRetouching = @IncludedRetouching,
             RetouchingLevel = @RetouchingLevel, IncludedSecondPhotographer = @IncludedSecondPhotographer, IsActive = @IsActive,
-            IsFeatured = @IsFeatured, DisplayOrder = @DisplayOrder, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
-        WHERE PackageID = @Id;
+            IsFeatured = @IsFeatured, DisplayOrder = @DisplayOrder, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
+        WHERE PackageID = @Id AND BranchID = @BranchID;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -525,9 +515,9 @@ CREATE PROCEDURE usp_PhotographyPackage_GetById
     @BranchID INT
 AS
 BEGIN
-    SELECT PackageID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages, MaxVideoDurationMinutes,
+    SELECT PackageID, BranchID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages, MaxVideoDurationMinutes,
            IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel, IncludedSecondPhotographer, IsActive, IsFeatured,
-           DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+           DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PhotographyPackage WHERE PackageID = @Id AND BranchID = @BranchID;
 END;
 
@@ -598,23 +588,20 @@ CREATE PROCEDURE usp_PackageComponent_Upsert
     @IsIncludedByDefault BIT = 1,
     @DisplayOrder INT = 0,
     @CreatedBy INT = NULL,
-    @UpdatedBy INT = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @UpdatedBy INT = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
         INSERT INTO PackageComponent (PackageID, ComponentType, ComponentName, ComponentDescription, Quantity, Unit, AddedValue,
-                                     IsIncludedByDefault, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy)
+                                     IsIncludedByDefault, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState)
         VALUES (@PackageId, @ComponentType, @ComponentName, @ComponentDescription, @Quantity, @Unit, @AddedValue,
-                @IsIncludedByDefault, @DisplayOrder, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @IsDeleted, @DeletedAt, @DeletedBy);
+                @IsIncludedByDefault, @DisplayOrder, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 'Active');
     ELSE
         UPDATE PackageComponent
         SET PackageID = @PackageId, ComponentType = @ComponentType, ComponentName = @ComponentName, ComponentDescription = @ComponentDescription,
             Quantity = @Quantity, Unit = @Unit, AddedValue = @AddedValue, IsIncludedByDefault = @IsIncludedByDefault,
-            DisplayOrder = @DisplayOrder, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
+            DisplayOrder = @DisplayOrder, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
         WHERE ComponentID = @Id;
 
     SELECT @@IDENTITY AS Id;
@@ -625,7 +612,7 @@ CREATE PROCEDURE usp_PackageComponent_GetById
 AS
 BEGIN
     SELECT ComponentID, PackageID, ComponentType, ComponentName, ComponentDescription, Quantity, Unit, AddedValue,
-           IsIncludedByDefault, DisplayOrder, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+           IsIncludedByDefault, DisplayOrder, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, RowState
     FROM PackageComponent WHERE ComponentID = @Id;
 END;
 
@@ -634,7 +621,7 @@ CREATE PROCEDURE usp_PackageComponent_GetByPackage
 AS
 BEGIN
     SELECT ComponentID, PackageID, ComponentType, ComponentName, ComponentDescription, Quantity, Unit, AddedValue,
-           IsIncludedByDefault, DisplayOrder, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+           IsIncludedByDefault, DisplayOrder, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, RowState
     FROM PackageComponent WHERE PackageID = @PackageId AND RowState = 'Active'
     ORDER BY DisplayOrder;
 END;
@@ -664,21 +651,18 @@ CREATE PROCEDURE usp_PackageAddOn_Upsert
     @DisplayOrder INT = 0,
     @IsActive BIT = 1,
     @CreatedBy INT = NULL,
-    @UpdatedBy INT = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @UpdatedBy INT = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO PackageAddOn (PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy)
-        VALUES (@PackageId, @AddOnName, @AddOnDescription, @Price, @Category, @MaxQuantity, @IsFeatured, @DisplayOrder, @IsActive, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @IsDeleted, @DeletedAt, @DeletedBy);
+        INSERT INTO PackageAddOn (PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState)
+        VALUES (@PackageId, @AddOnName, @AddOnDescription, @Price, @Category, @MaxQuantity, @IsFeatured, @DisplayOrder, @IsActive, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 'Active');
     ELSE
         UPDATE PackageAddOn
         SET PackageID = @PackageId, AddOnName = @AddOnName, AddOnDescription = @AddOnDescription, Price = @Price, Category = @Category,
             MaxQuantity = @MaxQuantity, IsFeatured = @IsFeatured, DisplayOrder = @DisplayOrder, IsActive = @IsActive,
-            UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
+            UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
         WHERE AddOnID = @Id;
 
     SELECT @@IDENTITY AS Id;
@@ -688,7 +672,7 @@ CREATE PROCEDURE usp_PackageAddOn_GetById
     @Id INT
 AS
 BEGIN
-    SELECT AddOnID, PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT AddOnID, PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, RowState
     FROM PackageAddOn WHERE AddOnID = @Id;
 END;
 
@@ -696,7 +680,7 @@ CREATE PROCEDURE usp_PackageAddOn_GetByPackage
     @PackageId INT
 AS
 BEGIN
-    SELECT AddOnID, PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT AddOnID, PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedAt, CreatedBy, UpdatedBy, UpdatedAt, RowState
     FROM PackageAddOn WHERE PackageID = @PackageId AND IsActive = 1 AND RowState = 'Active'
     ORDER BY DisplayOrder;
 END;
@@ -724,20 +708,17 @@ CREATE PROCEDURE usp_PackageDiscount_Upsert
     @ValidTo DATETIME = NULL,
     @IsActive BIT = 1,
     @CreatedBy INT = NULL,
-    @UpdatedBy INT = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @UpdatedBy INT = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO PackageDiscount (PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy)
-        VALUES (@PackageId, @DiscountName, @DiscountType, @DiscountValue, @ValidFrom, @ValidTo, @IsActive, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @IsDeleted, @DeletedAt, @DeletedBy);
+        INSERT INTO PackageDiscount (PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState)
+        VALUES (@PackageId, @DiscountName, @DiscountType, @DiscountValue, @ValidFrom, @ValidTo, @IsActive, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 'Active');
     ELSE
         UPDATE PackageDiscount
         SET PackageID = @PackageId, DiscountName = @DiscountName, DiscountType = @DiscountType, DiscountValue = @DiscountValue,
-            ValidFrom = @ValidFrom, ValidTo = @ValidTo, IsActive = @IsActive, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
+            ValidFrom = @ValidFrom, ValidTo = @ValidTo, IsActive = @IsActive, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
         WHERE DiscountID = @Id;
 
     SELECT @@IDENTITY AS Id;
@@ -747,7 +728,7 @@ CREATE PROCEDURE usp_PackageDiscount_GetById
     @Id INT
 AS
 BEGIN
-    SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
+    SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, RowState
     FROM PackageDiscount WHERE DiscountID = @Id;
 END;
 
@@ -755,7 +736,7 @@ CREATE PROCEDURE usp_PackageDiscount_GetByPackage
     @PackageId INT
 AS
 BEGIN
-    SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
+    SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, RowState
     FROM PackageDiscount WHERE PackageID = @PackageId AND RowState = 'Active'
     ORDER BY DiscountName;
 END;
@@ -767,11 +748,11 @@ AS
 BEGIN
     IF @CurrentDate IS NULL SET @CurrentDate = GETUTCDATE();
 
-    SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
+    SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, RowState
     FROM PackageDiscount
     WHERE PackageID = @PackageId AND IsActive = 1 AND RowState = 'Active'
-      AND (@ValidFrom IS NULL OR ValidFrom <= @CurrentDate)
-      AND (@ValidTo IS NULL OR ValidTo >= @CurrentDate);
+      AND (ValidFrom IS NULL OR ValidFrom <= @CurrentDate)
+      AND (ValidTo IS NULL OR ValidTo >= @CurrentDate);
 END;
 
 CREATE PROCEDURE usp_PackageDiscount_Delete
@@ -789,26 +770,25 @@ END;
 
 CREATE PROCEDURE usp_ClientInfo_Upsert
     @Id INT = 0,
+    @BranchID INT,
     @Email NVARCHAR(255),
     @Phone NVARCHAR(20) = NULL,
     @FullName NVARCHAR(255),
     @Address NVARCHAR(500) = NULL,
     @PreferredContactMethod NVARCHAR(50) = NULL,
     @CreatedBy INT = NULL,
-    @UpdatedBy INT = NULL,
-    @DeletedBy INT = NULL,
-    @DeletedAt DATETIME = NULL,
-    @IsDeleted BIT = 0
+    @UpdatedBy INT = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO ClientInfo (Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted)
-        VALUES (@Email, @Phone, @FullName, @Address, @PreferredContactMethod, 0, GETUTCDATE(), GETUTCDATE(), @CreatedBy, @UpdatedBy, @DeletedBy, @DeletedAt, @IsDeleted);
+        INSERT INTO ClientInfo (BranchID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, RowState)
+        VALUES (@BranchID, @Email, @Phone, @FullName, @Address, @PreferredContactMethod, 0, GETUTCDATE(), GETUTCDATE(), @CreatedBy, @UpdatedBy, 'Active');
     ELSE
         UPDATE ClientInfo
         SET Email = @Email, Phone = @Phone, FullName = @FullName, Address = @Address, PreferredContactMethod = @PreferredContactMethod,
-            UpdatedAt = GETUTCDATE(), UpdatedBy = @UpdatedBy, DeletedBy = @DeletedBy, DeletedAt = @DeletedAt, IsDeleted = @IsDeleted
-        WHERE ClientID = @Id;
+            UpdatedAt = GETUTCDATE(), UpdatedBy = @UpdatedBy
+        WHERE ClientID = @Id AND BranchID = @BranchID;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -817,7 +797,7 @@ CREATE PROCEDURE usp_ClientInfo_GetById
     @Id INT
 AS
 BEGIN
-    SELECT ClientID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
+    SELECT ClientID, BranchID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, RowState
     FROM ClientInfo WHERE ClientID = @Id;
 END;
 
@@ -825,8 +805,8 @@ CREATE PROCEDURE usp_ClientInfo_GetByEmail
     @Email NVARCHAR(255)
 AS
 BEGIN
-    SELECT ClientID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt
-    FROM ClientInfo WHERE Email = @Email;
+    SELECT ClientID, BranchID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, RowState
+    FROM ClientInfo WHERE Email = @Email AND RowState = 'Active';
 END;
 
 CREATE PROCEDURE usp_ClientInfo_GetPaged
@@ -834,7 +814,7 @@ CREATE PROCEDURE usp_ClientInfo_GetPaged
     @PageSize INT = 10
 AS
 BEGIN
-    SELECT ClientID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
+    SELECT ClientID, BranchID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, RowState
     FROM ClientInfo
     WHERE RowState = 'Active'
     ORDER BY CreatedAt DESC
@@ -849,7 +829,7 @@ CREATE PROCEDURE usp_ClientInfo_GetDeleted
     @PageSize INT = 10
 AS
 BEGIN
-    SELECT ClientID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, DeletedBy, DeletedAt, IsDeleted
+    SELECT ClientID, BranchID, Email, Phone, FullName, Address, PreferredContactMethod, PreviousBookings, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy, RowState
     FROM ClientInfo
     WHERE RowState = 'Deleted'
     ORDER BY UpdatedAt DESC
@@ -874,6 +854,7 @@ END;
 
 CREATE PROCEDURE usp_Booking_Upsert
     @Id INT = 0,
+    @BranchID INT,
     @PackageId INT,
     @ClientId INT,
     @QuotationId INT,
@@ -886,21 +867,21 @@ CREATE PROCEDURE usp_Booking_Upsert
     @Notes NVARCHAR(MAX) = NULL,
     @CreatedBy INT,
     @UpdatedBy INT = NULL,
-    @IsDeleted BIT = 0,
     @DepositAmount DECIMAL(10,2) = NULL,
     @DepositPaid BIT = 0
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO Booking (PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DepositAmount, DepositPaid)
-        VALUES (@PackageId, @ClientId, @QuotationId, @PhotographerUserId, @BookingDate, @Location, @Status, @TotalPrice, @SpecialRequests, @Notes, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @IsDeleted, @DepositAmount, @DepositPaid);
+        INSERT INTO Booking (BranchID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DepositAmount, DepositPaid, RowState)
+        VALUES (@BranchID, @PackageId, @ClientId, @QuotationId, @PhotographerUserId, @BookingDate, @Location, @Status, @TotalPrice, @SpecialRequests, @Notes, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @DepositAmount, @DepositPaid, 'Active');
     ELSE
         UPDATE Booking
         SET PackageID = @PackageId, ClientID = @ClientId, QuotationID = @QuotationId, PhotographerUserID = @PhotographerUserId,
             BookingDate = @BookingDate, Location = @Location, Status = @Status,
             TotalPrice = @TotalPrice, SpecialRequests = @SpecialRequests, Notes = @Notes, UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
-            IsDeleted = @IsDeleted, DepositAmount = @DepositAmount, DepositPaid = @DepositPaid
-        WHERE BookingID = @Id;
+            DepositAmount = @DepositAmount, DepositPaid = @DepositPaid
+        WHERE BookingID = @Id AND BranchID = @BranchID;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -910,7 +891,7 @@ CREATE PROCEDURE usp_Booking_GetById
     @BranchID INT
 AS
 BEGIN
-    SELECT BookingID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted, DepositAmount, DepositPaid
+    SELECT BookingID, BranchID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DepositAmount, DepositPaid, RowState
     FROM Booking WHERE BookingID = @Id AND BranchID = @BranchID;
 END;
 
@@ -920,7 +901,7 @@ CREATE PROCEDURE usp_Booking_GetPaged
     @BranchID INT
 AS
 BEGIN
-    SELECT BookingID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT BookingID, BranchID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DepositAmount, DepositPaid, RowState
     FROM Booking
     WHERE BranchID = @BranchID AND RowState = 'Active'
     ORDER BY BookingDate DESC
@@ -936,7 +917,7 @@ CREATE PROCEDURE usp_Booking_GetByDateRange
     @BranchID INT
 AS
 BEGIN
-    SELECT BookingID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT BookingID, BranchID, PackageID, ClientID, QuotationID, PhotographerUserID, BookingDate, Location, Status, TotalPrice, SpecialRequests, Notes, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DepositAmount, DepositPaid, RowState
     FROM Booking
     WHERE BookingDate BETWEEN @StartDate AND @EndDate AND BranchID = @BranchID AND RowState = 'Active'
     ORDER BY BookingDate;
@@ -964,20 +945,17 @@ CREATE PROCEDURE usp_BookingPackage_Upsert
     @AppliedDiscount DECIMAL(10,2) = 0,
     @FinalPrice DECIMAL(10,2),
     @PackageSnapshot NVARCHAR(MAX) = NULL,
-    @CampaignID INT = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @CampaignID INT = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO BookingPackage (BookingID, PackageID, SelectedAddOnsJson, AppliedDiscount, FinalPrice, PackageSnapshot, CampaignID, CreatedAt, IsDeleted, DeletedAt, DeletedBy)
-        VALUES (@BookingId, @PackageId, @SelectedAddOnsJson, @AppliedDiscount, @FinalPrice, @PackageSnapshot, @CampaignID, GETUTCDATE(), @IsDeleted, @DeletedAt, @DeletedBy);
+        INSERT INTO BookingPackage (BookingID, PackageID, SelectedAddOnsJson, AppliedDiscount, FinalPrice, PackageSnapshot, CampaignID, CreatedAt, RowState)
+        VALUES (@BookingId, @PackageId, @SelectedAddOnsJson, @AppliedDiscount, @FinalPrice, @PackageSnapshot, @CampaignID, GETUTCDATE(), 'Active');
     ELSE
         UPDATE BookingPackage
         SET BookingID = @BookingId, PackageID = @PackageId, SelectedAddOnsJson = @SelectedAddOnsJson,
-            AppliedDiscount = @AppliedDiscount, FinalPrice = @FinalPrice, PackageSnapshot = @PackageSnapshot, CampaignID = @CampaignID,
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
+            AppliedDiscount = @AppliedDiscount, FinalPrice = @FinalPrice, PackageSnapshot = @PackageSnapshot, CampaignID = @CampaignID, UpdatedAt = GETUTCDATE()
         WHERE BookingPackageID = @Id;
 
     SELECT @@IDENTITY AS Id;
@@ -987,15 +965,15 @@ CREATE PROCEDURE usp_BookingPackage_GetByBooking
     @BookingId INT
 AS
 BEGIN
-    SELECT BookingPackageID, BookingID, PackageID, SelectedAddOnsJson, AppliedDiscount, FinalPrice, PackageSnapshot, CampaignID, CreatedAt, DeletedBy, DeletedAt, IsDeleted
-    FROM BookingPackage WHERE BookingID = @BookingId;
+    SELECT BookingPackageID, BookingID, PackageID, SelectedAddOnsJson, AppliedDiscount, FinalPrice, PackageSnapshot, CampaignID, CreatedAt, UpdatedAt, RowState
+    FROM BookingPackage WHERE BookingID = @BookingId AND RowState = 'Active';
 END;
 
 CREATE PROCEDURE usp_BookingPackage_GetByCampaign
     @CampaignID INT
 AS
 BEGIN
-    SELECT BookingPackageID, BookingID, PackageID, SelectedAddOnsJson, AppliedDiscount, FinalPrice, PackageSnapshot, CampaignID, CreatedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT BookingPackageID, BookingID, PackageID, SelectedAddOnsJson, AppliedDiscount, FinalPrice, PackageSnapshot, CampaignID, CreatedAt, UpdatedAt, RowState
     FROM BookingPackage WHERE CampaignID = @CampaignID AND RowState = 'Active'
     ORDER BY CreatedAt DESC;
 END;
@@ -1010,20 +988,17 @@ CREATE PROCEDURE usp_CalendarBlock_Upsert
     @BlockStart DATETIME,
     @BlockEnd DATETIME,
     @Status NVARCHAR(50) = 'Booked',
-    @BlockReason NVARCHAR(255) = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @BlockReason NVARCHAR(255) = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO CalendarBlock (BookingID, BlockStart, BlockEnd, Status, BlockReason, CreatedAt, IsDeleted, DeletedAt, DeletedBy)
-        VALUES (@BookingId, @BlockStart, @BlockEnd, @Status, @BlockReason, GETUTCDATE(), @IsDeleted, @DeletedAt, @DeletedBy);
+        INSERT INTO CalendarBlock (BookingID, BlockStart, BlockEnd, Status, BlockReason, CreatedAt, RowState)
+        VALUES (@BookingId, @BlockStart, @BlockEnd, @Status, @BlockReason, GETUTCDATE(), 'Active');
     ELSE
         UPDATE CalendarBlock
         SET BookingID = @BookingId, BlockStart = @BlockStart, BlockEnd = @BlockEnd,
-            Status = @Status, BlockReason = @BlockReason,
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
+            Status = @Status, BlockReason = @BlockReason, UpdatedAt = GETUTCDATE()
         WHERE BlockID = @Id;
 
     SELECT @@IDENTITY AS Id;
@@ -1035,7 +1010,7 @@ CREATE PROCEDURE usp_CalendarBlock_GetByDateRange
     @BranchID INT
 AS
 BEGIN
-    SELECT BlockID, BookingID, BlockStart, BlockEnd, Status, BlockReason, CreatedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT BlockID, BranchID, BookingID, BlockStart, BlockEnd, Status, BlockReason, CreatedAt, UpdatedAt, RowState
     FROM CalendarBlock
     WHERE BlockStart < @EndDate AND BlockEnd > @StartDate AND BranchID = @BranchID AND RowState = 'Active'
     ORDER BY BlockStart;
@@ -1077,19 +1052,16 @@ CREATE PROCEDURE usp_Availability_Upsert
     @AvailabilityStart DATETIME,
     @AvailabilityEnd DATETIME,
     @IsAvailable BIT = 1,
-    @Notes NVARCHAR(500) = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @Notes NVARCHAR(500) = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO Availability (PhotographerUserID, AvailabilityStart, AvailabilityEnd, IsAvailable, Notes, CreatedAt, UpdatedAt, IsDeleted, DeletedAt, DeletedBy)
-        VALUES (@PhotographerUserID, @AvailabilityStart, @AvailabilityEnd, @IsAvailable, @Notes, GETUTCDATE(), GETUTCDATE(), @IsDeleted, @DeletedAt, @DeletedBy);
+        INSERT INTO Availability (PhotographerUserID, AvailabilityStart, AvailabilityEnd, IsAvailable, Notes, CreatedAt, UpdatedAt, RowState)
+        VALUES (@PhotographerUserID, @AvailabilityStart, @AvailabilityEnd, @IsAvailable, @Notes, GETUTCDATE(), GETUTCDATE(), 'Active');
     ELSE
         UPDATE Availability
-        SET PhotographerUserID = @PhotographerUserID, AvailabilityStart = @AvailabilityStart, AvailabilityEnd = @AvailabilityEnd, IsAvailable = @IsAvailable, Notes = @Notes, UpdatedAt = GETUTCDATE(),
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
+        SET PhotographerUserID = @PhotographerUserID, AvailabilityStart = @AvailabilityStart, AvailabilityEnd = @AvailabilityEnd, IsAvailable = @IsAvailable, Notes = @Notes, UpdatedAt = GETUTCDATE()
         WHERE AvailabilityID = @Id;
 
     SELECT @@IDENTITY AS Id;
@@ -1101,12 +1073,12 @@ CREATE PROCEDURE usp_Availability_GetByDateRange
     @EndDate DATETIME
 AS
 BEGIN
-    SELECT AvailabilityID, PhotographerUserID, AvailabilityStart, AvailabilityEnd, IsAvailable, Notes, CreatedAt, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+    SELECT AvailabilityID, PhotographerUserID, AvailabilityStart, AvailabilityEnd, IsAvailable, Notes, CreatedAt, UpdatedAt, RowState
     FROM Availability
     WHERE PhotographerUserID = @PhotographerUserID
       AND AvailabilityStart <= @EndDate
       AND AvailabilityEnd >= @StartDate
-      AND RowState != 'Deleted'
+      AND RowState = 'Active'
     ORDER BY AvailabilityStart;
 END;
 
@@ -2355,6 +2327,7 @@ END;
 
 CREATE PROCEDURE usp_Campaign_Upsert
     @Id INT = 0,
+    @BranchID INT,
     @CampaignName NVARCHAR(255),
     @Description NVARCHAR(MAX) = NULL,
     @CampaignType NVARCHAR(50) = NULL,
@@ -2368,24 +2341,21 @@ CREATE PROCEDURE usp_Campaign_Upsert
     @IsActive BIT = 1,
     @DisplayOrder INT = 0,
     @CreatedBy INT,
-    @UpdatedBy INT = NULL,
-    @IsDeleted BIT = 0,
-    @DeletedAt DATETIME = NULL,
-    @DeletedBy INT = NULL
+    @UpdatedBy INT = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF @Id = 0
-        INSERT INTO Campaign (CampaignName, Description, CampaignType, StartDate, EndDate, BannerImageUrl, DiscountType, DiscountValue, MaxApplicableAmount, TermsConditions, IsActive, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, IsDeleted, DeletedAt, DeletedBy)
-        VALUES (@CampaignName, @Description, @CampaignType, @StartDate, @EndDate, @BannerImageUrl, @DiscountType, @DiscountValue, @MaxApplicableAmount, @TermsConditions, @IsActive, @DisplayOrder, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @IsDeleted, @DeletedAt, @DeletedBy);
+        INSERT INTO Campaign (BranchID, CampaignName, Description, CampaignType, StartDate, EndDate, BannerImageUrl, DiscountType, DiscountValue, MaxApplicableAmount, TermsConditions, IsActive, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState)
+        VALUES (@BranchID, @CampaignName, @Description, @CampaignType, @StartDate, @EndDate, @BannerImageUrl, @DiscountType, @DiscountValue, @MaxApplicableAmount, @TermsConditions, @IsActive, @DisplayOrder, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 'Active');
     ELSE
         UPDATE Campaign
         SET CampaignName = @CampaignName, Description = @Description, CampaignType = @CampaignType,
             StartDate = @StartDate, EndDate = @EndDate, BannerImageUrl = @BannerImageUrl,
             DiscountType = @DiscountType, DiscountValue = @DiscountValue, MaxApplicableAmount = @MaxApplicableAmount,
             TermsConditions = @TermsConditions, IsActive = @IsActive, DisplayOrder = @DisplayOrder,
-            UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE(),
-            IsDeleted = @IsDeleted, DeletedAt = @DeletedAt, DeletedBy = @DeletedBy
-        WHERE CampaignID = @Id;
+            UpdatedBy = @UpdatedBy, UpdatedAt = GETUTCDATE()
+        WHERE CampaignID = @Id AND BranchID = @BranchID;
 
     SELECT @@IDENTITY AS Id;
 END;
@@ -2395,9 +2365,9 @@ CREATE PROCEDURE usp_Campaign_GetById
     @BranchID INT
 AS
 BEGIN
-    SELECT CampaignID, CampaignName, Description, CampaignType, StartDate, EndDate, BannerImageUrl,
+    SELECT CampaignID, BranchID, CampaignName, Description, CampaignType, StartDate, EndDate, BannerImageUrl,
            DiscountType, DiscountValue, MaxApplicableAmount, TermsConditions, IsActive, DisplayOrder,
-           CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, DeletedBy, DeletedAt, IsDeleted
+           CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM Campaign WHERE CampaignID = @Id AND BranchID = @BranchID;
 END;
 
