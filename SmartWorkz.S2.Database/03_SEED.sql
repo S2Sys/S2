@@ -2209,3 +2209,118 @@ PRINT 'Contract Templates seeded: 6 templates';
 
 -- Verify ContractTemplate records
 SELECT 'ContractTemplate' AS TableName, COUNT(*) AS ActiveRecords FROM ContractTemplate WHERE IsDeleted = 0;
+
+-- ============================================
+-- SEED PRICING RULES (Gap #20)
+-- ============================================
+
+PRINT '=== Seeding Pricing Rules ===';
+
+-- Weekend Surcharge: +50%
+EXEC uspPricingRuleUpsert
+    @Id = 0,
+    @RuleName = 'Weekend Surcharge',
+    @ServiceCategory = NULL,
+    @RuleType = 'Weekend',
+    @AdjustmentType = 'Percentage',
+    @AdjustmentValue = 50,
+    @EffectiveFrom = NULL,
+    @EffectiveTo = NULL,
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- Holiday Premium: +75%
+EXEC uspPricingRuleUpsert
+    @Id = 0,
+    @RuleName = 'Holiday Premium',
+    @ServiceCategory = NULL,
+    @RuleType = 'Holiday',
+    @AdjustmentType = 'Percentage',
+    @AdjustmentValue = 75,
+    @EffectiveFrom = NULL,
+    @EffectiveTo = NULL,
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- Rush Booking: +100%
+EXEC uspPricingRuleUpsert
+    @Id = 0,
+    @RuleName = 'Rush Booking (24hr)',
+    @ServiceCategory = NULL,
+    @RuleType = 'Rush',
+    @AdjustmentType = 'Percentage',
+    @AdjustmentValue = 100,
+    @EffectiveFrom = NULL,
+    @EffectiveTo = NULL,
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- Early Bird Discount: -15%
+EXEC uspPricingRuleUpsert
+    @Id = 0,
+    @RuleName = 'Early Bird Discount (2+ months)',
+    @ServiceCategory = NULL,
+    @RuleType = 'EarlyBird',
+    @AdjustmentType = 'Percentage',
+    @AdjustmentValue = -15,
+    @EffectiveFrom = NULL,
+    @EffectiveTo = NULL,
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- Group Discount: -10%
+EXEC uspPricingRuleUpsert
+    @Id = 0,
+    @RuleName = 'Group Discount (3+ bookings)',
+    @ServiceCategory = NULL,
+    @RuleType = 'GroupDiscount',
+    @AdjustmentType = 'Percentage',
+    @AdjustmentValue = -10,
+    @EffectiveFrom = NULL,
+    @EffectiveTo = NULL,
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- Evening Session: +$150 fixed
+EXEC uspPricingRuleUpsert
+    @Id = 0,
+    @RuleName = 'Evening Session',
+    @ServiceCategory = NULL,
+    @RuleType = 'Evening',
+    @AdjustmentType = 'FixedAmount',
+    @AdjustmentValue = 150,
+    @EffectiveFrom = NULL,
+    @EffectiveTo = NULL,
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- Overnight Coverage: +$200 fixed
+EXEC uspPricingRuleUpsert
+    @Id = 0,
+    @RuleName = 'Overnight Coverage',
+    @ServiceCategory = NULL,
+    @RuleType = 'Overnight',
+    @AdjustmentType = 'FixedAmount',
+    @AdjustmentValue = 200,
+    @EffectiveFrom = NULL,
+    @EffectiveTo = NULL,
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+-- Video Add-on: +40%
+EXEC uspPricingRuleUpsert
+    @Id = 0,
+    @RuleName = 'Video Add-on',
+    @ServiceCategory = 'Video',
+    @RuleType = 'Other',
+    @AdjustmentType = 'Percentage',
+    @AdjustmentValue = 40,
+    @EffectiveFrom = NULL,
+    @EffectiveTo = NULL,
+    @IsActive = 1,
+    @CreatedBy = @TemplateAdminId;
+
+PRINT 'Pricing Rules seeded: 8 rules';
+
+-- Verify PricingRule records
+SELECT 'PricingRule' AS TableName, COUNT(*) AS ActiveRecords FROM PricingRule WHERE IsDeleted = 0;

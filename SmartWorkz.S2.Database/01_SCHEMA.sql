@@ -1170,6 +1170,44 @@ CREATE TABLE ContractTemplate (
 );
 
 -- ============================================
+-- PRICING RULES (Gap #20 - Dynamic Pricing)
+-- ============================================
+
+CREATE TABLE PricingRule (
+    PricingRuleID INT PRIMARY KEY IDENTITY(1,1),
+    RuleName NVARCHAR(255) NOT NULL UNIQUE,
+    ServiceCategory NVARCHAR(100),
+    RuleType NVARCHAR(50) NOT NULL,
+    AdjustmentType NVARCHAR(50) NOT NULL,
+    AdjustmentValue DECIMAL(10,2) NOT NULL,
+    EffectiveFrom DATETIME,
+    EffectiveTo DATETIME,
+    IsActive BIT DEFAULT 1,
+    CreatedBy INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETUTCDATE(),
+    UpdatedBy INT,
+    UpdatedAt DATETIME DEFAULT GETUTCDATE(),
+    DeletedBy INT,
+    DeletedAt DATETIME,
+    IsDeleted BIT DEFAULT 0,
+    FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID),
+    FOREIGN KEY (DeletedBy) REFERENCES Users(UserID),
+    CHECK (ServiceCategory IN ('Wedding', 'Portrait', 'Events', 'Video', 'Corporate', 'Other', NULL)),
+    CHECK (RuleType IN ('Weekend', 'Holiday', 'Rush', 'Evening', 'Overnight', 'GroupDiscount', 'EarlyBird', 'Other')),
+    CHECK (AdjustmentType IN ('Percentage', 'FixedAmount')),
+    CHECK (AdjustmentValue > 0),
+    CHECK (IsDeleted IN (0, 1)),
+    CHECK (EffectiveFrom IS NULL OR EffectiveTo IS NULL OR EffectiveFrom <= EffectiveTo),
+    INDEX IDX_PricingRule_ServiceCategory (ServiceCategory),
+    INDEX IDX_PricingRule_RuleType (RuleType),
+    INDEX IDX_PricingRule_IsActive (IsActive),
+    INDEX IDX_PricingRule_EffectiveFrom (EffectiveFrom),
+    INDEX IDX_PricingRule_CreatedBy (CreatedBy),
+    INDEX IDX_PricingRule_IsDeleted (IsDeleted)
+);
+
+-- ============================================
 -- CREATE INDEXES
 -- ============================================
 
@@ -1251,3 +1289,4 @@ CREATE INDEX IDX_Invoice_IsDeleted ON Invoice(IsDeleted);
 CREATE INDEX IDX_SEOMetadata_IsDeleted ON SEOMetadata(IsDeleted);
 CREATE INDEX IDX_PortfolioShowcase_IsDeleted ON PortfolioShowcase(IsDeleted);
 CREATE INDEX IDX_EmailTemplate_IsDeleted ON EmailTemplate(IsDeleted);
+CREATE INDEX IDX_PricingRule_IsDeleted ON PricingRule(IsDeleted);

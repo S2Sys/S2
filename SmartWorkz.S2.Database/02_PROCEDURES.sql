@@ -3658,3 +3658,168 @@ BEGIN
     SELECT @ContractTemplateID AS ContractTemplateID;
 END;
 
+-- ============================================
+-- PRICING RULE PROCEDURES (Gap #20)
+-- ============================================
+
+CREATE PROCEDURE uspPricingRuleUpsert
+    @Id INT = 0,
+    @RuleName NVARCHAR(255),
+    @ServiceCategory NVARCHAR(100) = NULL,
+    @RuleType NVARCHAR(50),
+    @AdjustmentType NVARCHAR(50),
+    @AdjustmentValue DECIMAL(10,2),
+    @EffectiveFrom DATETIME = NULL,
+    @EffectiveTo DATETIME = NULL,
+    @IsActive BIT = 1,
+    @CreatedBy INT,
+    @UpdatedBy INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @Id = 0
+    BEGIN
+        INSERT INTO PricingRule (
+            RuleName, ServiceCategory, RuleType, AdjustmentType, AdjustmentValue,
+            EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedAt
+        ) VALUES (
+            @RuleName, @ServiceCategory, @RuleType, @AdjustmentType, @AdjustmentValue,
+            @EffectiveFrom, @EffectiveTo, @IsActive, @CreatedBy, GETUTCDATE(), GETUTCDATE()
+        );
+
+        SELECT CAST(SCOPE_IDENTITY() AS INT) AS PricingRuleID;
+    END
+    ELSE
+    BEGIN
+        UPDATE PricingRule
+        SET RuleName = @RuleName,
+            ServiceCategory = @ServiceCategory,
+            RuleType = @RuleType,
+            AdjustmentType = @AdjustmentType,
+            AdjustmentValue = @AdjustmentValue,
+            EffectiveFrom = @EffectiveFrom,
+            EffectiveTo = @EffectiveTo,
+            IsActive = @IsActive,
+            UpdatedBy = @UpdatedBy,
+            UpdatedAt = GETUTCDATE()
+        WHERE PricingRuleID = @Id AND IsDeleted = 0;
+
+        SELECT @Id AS PricingRuleID;
+    END
+END;
+
+CREATE PROCEDURE uspPricingRuleRead
+    @PricingRuleID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        PricingRuleID, RuleName, ServiceCategory, RuleType, AdjustmentType, AdjustmentValue,
+        EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
+        DeletedBy, DeletedAt, IsDeleted
+    FROM PricingRule
+    WHERE PricingRuleID = @PricingRuleID AND IsDeleted = 0;
+END;
+
+CREATE PROCEDURE uspPricingRuleReadAll
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        PricingRuleID, RuleName, ServiceCategory, RuleType, AdjustmentType, AdjustmentValue,
+        EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
+        DeletedBy, DeletedAt, IsDeleted
+    FROM PricingRule
+    WHERE IsActive = 1 AND IsDeleted = 0
+    ORDER BY RuleName ASC;
+END;
+
+CREATE PROCEDURE uspPricingRuleReadPaged
+    @PageNumber INT = 1,
+    @PageSize INT = 10,
+    @ServiceCategory NVARCHAR(100) = NULL,
+    @RuleType NVARCHAR(50) = NULL,
+    @IsActive BIT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Offset INT = (@PageNumber - 1) * @PageSize;
+
+    SELECT
+        PricingRuleID, RuleName, ServiceCategory, RuleType, AdjustmentType, AdjustmentValue,
+        EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
+        DeletedBy, DeletedAt, IsDeleted
+    FROM PricingRule
+    WHERE IsDeleted = 0
+        AND (@ServiceCategory IS NULL OR ServiceCategory = @ServiceCategory)
+        AND (@RuleType IS NULL OR RuleType = @RuleType)
+        AND (@IsActive IS NULL OR IsActive = @IsActive)
+    ORDER BY RuleName ASC
+    OFFSET @Offset ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+END;
+
+CREATE PROCEDURE uspPricingRuleGetByRuleType
+    @RuleType NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        PricingRuleID, RuleName, ServiceCategory, RuleType, AdjustmentType, AdjustmentValue,
+        EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
+        DeletedBy, DeletedAt, IsDeleted
+    FROM PricingRule
+    WHERE RuleType = @RuleType AND IsActive = 1 AND IsDeleted = 0
+    ORDER BY RuleName ASC;
+END;
+
+CREATE PROCEDURE uspPricingRuleGetByServiceCategory
+    @ServiceCategory NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        PricingRuleID, RuleName, ServiceCategory, RuleType, AdjustmentType, AdjustmentValue,
+        EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
+        DeletedBy, DeletedAt, IsDeleted
+    FROM PricingRule
+    WHERE ServiceCategory = @ServiceCategory AND IsActive = 1 AND IsDeleted = 0
+    ORDER BY RuleName ASC;
+END;
+
+CREATE PROCEDURE uspPricingRuleGetActiveOnDate
+    @Date DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        PricingRuleID, RuleName, ServiceCategory, RuleType, AdjustmentType, AdjustmentValue,
+        EffectiveFrom, EffectiveTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt,
+        DeletedBy, DeletedAt, IsDeleted
+    FROM PricingRule
+    WHERE IsActive = 1 AND IsDeleted = 0
+        AND (@Date >= ISNULL(EffectiveFrom, @Date) AND @Date <= ISNULL(EffectiveTo, @Date))
+    ORDER BY RuleName ASC;
+END;
+
+CREATE PROCEDURE uspPricingRuleDelete
+    @PricingRuleID INT,
+    @DeletedBy INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE PricingRule
+    SET IsDeleted = 1, DeletedAt = GETUTCDATE(), DeletedBy = @DeletedBy
+    WHERE PricingRuleID = @PricingRuleID AND IsDeleted = 0;
+
+    SELECT @PricingRuleID AS PricingRuleID;
+END;
+
