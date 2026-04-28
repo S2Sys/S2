@@ -47,6 +47,7 @@ CREATE TABLE Users (
     IsActive BIT DEFAULT 1,
     CreatedAt DATETIME DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME DEFAULT GETUTCDATE(),
+    RowState NVARCHAR(50) DEFAULT 'Active',
 
     -- Photographer Fields
     IsPhotographer BIT DEFAULT 0,
@@ -56,8 +57,10 @@ CREATE TABLE Users (
     PreferredWorkingHours NVARCHAR(500),
 
     FOREIGN KEY (BranchID) REFERENCES Branch(BranchID),
+    CHECK (RowState IN ('Active', 'Inactive', 'Deleted')),
     INDEX IDX_Users_IsPhotographer (IsPhotographer),
-    INDEX IDX_Users_BranchID (BranchID)
+    INDEX IDX_Users_BranchID (BranchID),
+    INDEX IDX_Users_RowState (RowState)
 );
 
 CREATE TABLE UserRoles (
