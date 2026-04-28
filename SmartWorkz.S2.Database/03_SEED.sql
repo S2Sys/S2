@@ -1,5 +1,5 @@
 -- STUDIOS2 Database - Seed Data (Run Third)
--- Populates initial data with simplified naming conventions (CreatedBy, UpdatedBy, DeletedBy)
+-- Populates initial data with Branch multi-tenancy support (BranchID) and row state tracking (RowState)
 
 SET NOCOUNT ON;
 
