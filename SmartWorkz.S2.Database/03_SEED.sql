@@ -654,6 +654,7 @@ DECLARE @Client1Id INT, @Client2Id INT;
 
 EXEC usp_ClientInfo_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @Email = 'client1@example.com',
     @Phone = '+91-8765432109',
     @FullName = 'Rajesh Kumar',
@@ -664,6 +665,7 @@ SELECT @Client1Id = @@IDENTITY;
 
 EXEC usp_ClientInfo_Upsert
     @Id = 0,
+    @BranchID = @HeadquartersBranchId,
     @Email = 'client2@example.com',
     @Phone = '+91-9012345678',
     @FullName = 'Priya Singh',
