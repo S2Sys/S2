@@ -7,6 +7,8 @@ using SmartWorkz.S2.Domain;
 using SmartWorkz.S2.Infrastructure;
 using SmartWorkz.S2.Application;
 using SmartWorkz.S2.Api;
+using SmartWorkz.S2.Api.Middleware;
+using SmartWorkz.S2.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
