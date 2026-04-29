@@ -5,6 +5,7 @@ using Serilog;
 using System.Text;
 using SmartWorkz.S2.Domain;
 using SmartWorkz.S2.Infrastructure;
+using SmartWorkz.S2.Application;
 using SmartWorkz.S2.Api;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +43,10 @@ builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISettingsRepository, SettingsRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+
+// R1: Auth Use Cases
+builder.Services.AddScoped<ILoginUseCase, LoginUseCase>();
+builder.Services.AddScoped<IGetCurrentUserUseCase, GetCurrentUserUseCase>();
 
 // Authentication: Cookie + JWT Bearer
 var jwtSecret = builder.Configuration["Jwt:Secret"];
