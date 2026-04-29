@@ -22,6 +22,16 @@ builder.Host.UseSerilog();
 // Services
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new()
+    {
+        Title = "S2 API",
+        Version = "v1",
+        Description = "Studio S2 Photography Booking & Management API"
+    });
+});
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -95,7 +105,12 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Configure HTTP request pipeline
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
