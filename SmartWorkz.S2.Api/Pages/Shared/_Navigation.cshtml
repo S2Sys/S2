@@ -1,0 +1,52 @@
+<nav class="nav-custom">
+    <div class="nav-container">
+        <!-- Logo -->
+        <div class="nav-logo">
+            <a href="/">
+                <i class="bi bi-camera-fill"></i>
+                <span>STUDIO<span class="accent"> S2</span></span>
+            </a>
+        </div>
+
+        <!-- Mobile Toggle Button -->
+        <button class="nav-toggle" id="navToggle" type="button">
+            <i class="bi bi-list"></i>
+        </button>
+
+        <!-- Navigation Links -->
+        <div class="nav-links" id="navLinks">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/gallery" class="nav-link">Portfolio</a>
+            <a href="/packages" class="nav-link">Packages</a>
+            <a href="/about" class="nav-link">About</a>
+            <a href="/contact" class="nav-link">Contact</a>
+        </div>
+
+        <!-- Right Buttons -->
+        <div class="nav-buttons">
+            <a href="/admin/login" class="nav-btn nav-btn-secondary">
+                <i class="bi bi-box-arrow-in-right"></i>
+                <span>Sign In</span>
+            </a>
+            <a href="/booking" class="nav-btn nav-btn-primary">
+                <span>Book Now</span>
+                <i class="bi bi-calendar2-check"></i>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<script>
+    // Mobile nav toggle
+    document.getElementById('navToggle').addEventListener('click', function() {
+        const navLinks = document.getElementById('navLinks');
+        navLinks.classList.toggle('active');
+    });
+
+    // Close mobile nav when link is clicked
+    document.querySelectorAll('.nav-links .nav-link').forEach(link => {
+        link.addEventListener('click', function() {
+            document.getElementById('navLinks').classList.remove('active');
+        });
+    });
+</script>
