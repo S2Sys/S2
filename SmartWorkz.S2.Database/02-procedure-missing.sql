@@ -1,10 +1,50 @@
 -- STUDIOS2 Missing Stored Procedures - R2 through R14
 -- Procedures for Gallery Management, Packages, Bookings, and beyond
 -- UPSERT pattern: @Id = 0 = INSERT, @Id > 0 = UPDATE, returns resolved ID
+-- Schema reference: database_schema_gallery_packages.md in memory
 
 -- ============================================
 -- R2: GALLERY MANAGEMENT
 -- ============================================
+
+DROP PROCEDURE IF EXISTS uspGalleryTypeUpsert;
+DROP PROCEDURE IF EXISTS uspGalleryTypeGetById;
+DROP PROCEDURE IF EXISTS uspGalleryTypeGet;
+DROP PROCEDURE IF EXISTS uspGalleryTypeDelete;
+DROP PROCEDURE IF EXISTS uspGalleryUpsert;
+DROP PROCEDURE IF EXISTS uspGalleryGetById;
+DROP PROCEDURE IF EXISTS uspGalleryGet;
+DROP PROCEDURE IF EXISTS uspGalleryGetPaged;
+DROP PROCEDURE IF EXISTS uspGalleryGetFeatured;
+DROP PROCEDURE IF EXISTS uspGalleryIncrementViewCount;
+DROP PROCEDURE IF EXISTS uspGalleryDelete;
+DROP PROCEDURE IF EXISTS uspGalleryAssetUpsert;
+DROP PROCEDURE IF EXISTS uspGalleryAssetGetById;
+DROP PROCEDURE IF EXISTS uspGalleryAssetGetByGallery;
+DROP PROCEDURE IF EXISTS uspGalleryAssetReorder;
+DROP PROCEDURE IF EXISTS uspGalleryAssetDelete;
+DROP PROCEDURE IF EXISTS uspViewAnalyticsIncrement;
+DROP PROCEDURE IF EXISTS uspPhotographyPackageUpsert;
+DROP PROCEDURE IF EXISTS uspPhotographyPackageGetById;
+DROP PROCEDURE IF EXISTS uspPhotographyPackageGet;
+DROP PROCEDURE IF EXISTS uspPhotographyPackageGetPaged;
+DROP PROCEDURE IF EXISTS uspPhotographyPackageGetFeatured;
+DROP PROCEDURE IF EXISTS uspPhotographyPackageDelete;
+DROP PROCEDURE IF EXISTS uspPackageComponentUpsert;
+DROP PROCEDURE IF EXISTS uspPackageComponentGetById;
+DROP PROCEDURE IF EXISTS uspPackageComponentGetByPackage;
+DROP PROCEDURE IF EXISTS uspPackageComponentDelete;
+DROP PROCEDURE IF EXISTS uspPackageAddOnUpsert;
+DROP PROCEDURE IF EXISTS uspPackageAddOnGetById;
+DROP PROCEDURE IF EXISTS uspPackageAddOnGetByPackage;
+DROP PROCEDURE IF EXISTS uspPackageAddOnDelete;
+DROP PROCEDURE IF EXISTS uspPackageDiscountUpsert;
+DROP PROCEDURE IF EXISTS uspPackageDiscountGetById;
+DROP PROCEDURE IF EXISTS uspPackageDiscountGetByPackage;
+DROP PROCEDURE IF EXISTS uspPackageDiscountGetByPackageActive;
+DROP PROCEDURE IF EXISTS uspPackageDiscountDelete;
+
+GO
 
 CREATE PROCEDURE uspGalleryTypeUpsert
     @GalleryTypeID INT = 0,
@@ -16,13 +56,17 @@ BEGIN
     SET NOCOUNT ON;
     IF @GalleryTypeID = 0
     BEGIN
-        INSERT INTO GalleryType (TypeName, Description, IsActive, RowState)
-        VALUES (@TypeName, @Description, @IsActive, 'Active');
+        INSERT INTO GalleryType (TypeName, Description, IsActive, CreatedAt, UpdatedAt, RowState)
+        VALUES (@TypeName, @Description, @IsActive, GETUTCDATE(), GETUTCDATE(), 'Active');
         SET @GalleryTypeID = SCOPE_IDENTITY();
     END
     ELSE
     BEGIN
-        UPDATE GalleryType SET TypeName = @TypeName, Description = @Description, IsActive = @IsActive, UpdatedAt = GETUTCDATE()
+        UPDATE GalleryType
+        SET TypeName = @TypeName,
+            Description = @Description,
+            IsActive = @IsActive,
+            UpdatedAt = GETUTCDATE()
         WHERE GalleryTypeID = @GalleryTypeID;
     END
     SELECT @GalleryTypeID AS GalleryTypeID;
@@ -37,7 +81,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT GalleryTypeID, TypeName, Description, IsActive, RowState, CreatedAt, UpdatedAt
     FROM GalleryType
-    WHERE GalleryTypeID = @GalleryTypeID AND RowState = 'Active';
+    WHERE GalleryTypeID = @GalleryTypeID AND RowState != 'Deleted';
 END;
 
 GO
@@ -48,7 +92,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT GalleryTypeID, TypeName, Description, IsActive, RowState, CreatedAt, UpdatedAt
     FROM GalleryType
-    WHERE RowState = 'Active'
+    WHERE RowState != 'Deleted'
     ORDER BY TypeName;
 END;
 
@@ -66,25 +110,58 @@ GO
 
 CREATE PROCEDURE uspGalleryUpsert
     @GalleryID INT = 0,
+    @BranchID INT,
     @GalleryTypeID INT,
+    @EventID INT = NULL,
     @Title NVARCHAR(255),
     @Description NVARCHAR(1000) = NULL,
-    @Slug NVARCHAR(255),
+    @Category NVARCHAR(100) = NULL,
+    @ThumbnailUrl NVARCHAR(500) = NULL,
+    @DisplayOrder INT = 0,
     @IsFeatured BIT = 0,
     @IsPublished BIT = 1,
-    @ViewCount INT = 0
+    @IsPrivate BIT = 0,
+    @RotationSpeed INT = NULL,
+    @StartDate DATETIME = NULL,
+    @EndDate DATETIME = NULL,
+    @ReviewStatusID INT = NULL,
+    @ClientApprovalDeadline DATETIME = NULL,
+    @ApprovedByUserID INT = NULL,
+    @AssignedToPhotographerUserID INT = NULL,
+    @CreatedBy INT = NULL,
+    @UpdatedBy INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     IF @GalleryID = 0
     BEGIN
-        INSERT INTO Gallery (GalleryTypeID, Title, Description, Slug, IsFeatured, IsPublished, ViewCount, RowState)
-        VALUES (@GalleryTypeID, @Title, @Description, @Slug, @IsFeatured, @IsPublished, @ViewCount, 'Active');
+        INSERT INTO Gallery (BranchID, GalleryTypeID, EventID, Title, Description, Category, ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate, RotationSpeed, StartDate, EndDate, ReviewStatusID, ClientApprovalDeadline, ApprovedByUserID, AssignedToPhotographerUserID, CreatedBy, CreatedAt, UpdatedAt, RowState)
+        VALUES (@BranchID, @GalleryTypeID, @EventID, @Title, @Description, @Category, @ThumbnailUrl, @DisplayOrder, @IsFeatured, @IsPublished, @IsPrivate, @RotationSpeed, @StartDate, @EndDate, @ReviewStatusID, @ClientApprovalDeadline, @ApprovedByUserID, @AssignedToPhotographerUserID, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 'Active');
         SET @GalleryID = SCOPE_IDENTITY();
     END
     ELSE
     BEGIN
-        UPDATE Gallery SET GalleryTypeID = @GalleryTypeID, Title = @Title, Description = @Description, Slug = @Slug, IsFeatured = @IsFeatured, IsPublished = @IsPublished, UpdatedAt = GETUTCDATE()
+        UPDATE Gallery
+        SET BranchID = @BranchID,
+            GalleryTypeID = @GalleryTypeID,
+            EventID = @EventID,
+            Title = @Title,
+            Description = @Description,
+            Category = @Category,
+            ThumbnailUrl = @ThumbnailUrl,
+            DisplayOrder = @DisplayOrder,
+            IsFeatured = @IsFeatured,
+            IsPublished = @IsPublished,
+            IsPrivate = @IsPrivate,
+            RotationSpeed = @RotationSpeed,
+            StartDate = @StartDate,
+            EndDate = @EndDate,
+            ReviewStatusID = @ReviewStatusID,
+            ClientApprovalDeadline = @ClientApprovalDeadline,
+            ApprovedByUserID = @ApprovedByUserID,
+            AssignedToPhotographerUserID = @AssignedToPhotographerUserID,
+            UpdatedAt = GETUTCDATE(),
+            UpdatedBy = ISNULL(@UpdatedBy, UpdatedBy)
         WHERE GalleryID = @GalleryID;
     END
     SELECT @GalleryID AS GalleryID;
@@ -97,9 +174,9 @@ CREATE PROCEDURE uspGalleryGetById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT GalleryID, GalleryTypeID, Title, Description, Slug, IsFeatured, IsPublished, ViewCount, RowState, CreatedAt, UpdatedAt
+    SELECT GalleryID, BranchID, GalleryTypeID, EventID, Title, Description, Category, ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate, ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatusID, ClientApprovalDeadline, ApprovedByUserID, AssignedToPhotographerUserID, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM Gallery
-    WHERE GalleryID = @GalleryID AND RowState = 'Active';
+    WHERE GalleryID = @GalleryID AND RowState != 'Deleted';
 END;
 
 GO
@@ -108,41 +185,38 @@ CREATE PROCEDURE uspGalleryGet
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT GalleryID, GalleryTypeID, Title, Description, Slug, IsFeatured, IsPublished, ViewCount, RowState, CreatedAt, UpdatedAt
+    SELECT GalleryID, BranchID, GalleryTypeID, EventID, Title, Description, Category, ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate, ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatusID, ClientApprovalDeadline, ApprovedByUserID, AssignedToPhotographerUserID, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM Gallery
-    WHERE RowState = 'Active'
-    ORDER BY IsFeatured DESC, CreatedAt DESC;
+    WHERE RowState != 'Deleted'
+    ORDER BY CreatedAt DESC;
 END;
 
 GO
 
 CREATE PROCEDURE uspGalleryGetPaged
-    @Page INT = 1,
-    @PageSize INT = 12,
-    @Category NVARCHAR(100) = NULL
+    @PageNumber INT,
+    @PageSize INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Offset INT = (@Page - 1) * @PageSize;
-
-    SELECT GalleryID, GalleryTypeID, Title, Description, Slug, IsFeatured, IsPublished, ViewCount, RowState, CreatedAt, UpdatedAt
+    SELECT GalleryID, BranchID, GalleryTypeID, EventID, Title, Description, Category, ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate, ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatusID, ClientApprovalDeadline, ApprovedByUserID, AssignedToPhotographerUserID, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM Gallery
-    WHERE RowState = 'Active' AND IsPublished = 1
-    ORDER BY IsFeatured DESC, CreatedAt DESC
-    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+    WHERE RowState != 'Deleted'
+    ORDER BY CreatedAt DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
 END;
 
 GO
 
 CREATE PROCEDURE uspGalleryGetFeatured
-    @Limit INT = 6
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP (@Limit) GalleryID, GalleryTypeID, Title, Description, Slug, IsFeatured, IsPublished, ViewCount, RowState, CreatedAt, UpdatedAt
+    SELECT GalleryID, BranchID, GalleryTypeID, EventID, Title, Description, Category, ThumbnailUrl, DisplayOrder, IsFeatured, IsPublished, IsPrivate, ViewCount, RotationSpeed, StartDate, EndDate, ReviewStatusID, ClientApprovalDeadline, ApprovedByUserID, AssignedToPhotographerUserID, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM Gallery
-    WHERE RowState = 'Active' AND IsPublished = 1 AND IsFeatured = 1
-    ORDER BY CreatedAt DESC;
+    WHERE IsFeatured = 1 AND IsPublished = 1 AND RowState != 'Deleted'
+    ORDER BY DisplayOrder ASC, CreatedAt DESC;
 END;
 
 GO
@@ -152,7 +226,9 @@ CREATE PROCEDURE uspGalleryIncrementViewCount
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE Gallery SET ViewCount = ViewCount + 1 WHERE GalleryID = @GalleryID;
+    UPDATE Gallery
+    SET ViewCount = ISNULL(ViewCount, 0) + 1
+    WHERE GalleryID = @GalleryID;
 END;
 
 GO
@@ -168,39 +244,58 @@ END;
 GO
 
 CREATE PROCEDURE uspGalleryAssetUpsert
-    @GalleryAssetID INT = 0,
+    @AssetID INT = 0,
     @GalleryID INT,
-    @OriginalUrl NVARCHAR(500),
+    @AssetType NVARCHAR(50),
+    @MediaUrl NVARCHAR(500),
     @ThumbnailUrl NVARCHAR(500) = NULL,
+    @LinkUrl NVARCHAR(500) = NULL,
+    @AltText NVARCHAR(255) = NULL,
     @Caption NVARCHAR(500) = NULL,
-    @DisplayOrder INT = 0
+    @DurationMinutes INT = NULL,
+    @DisplayOrder INT = 0,
+    @AssetStatusID INT = NULL,
+    @RetouchNotes NVARCHAR(1000) = NULL,
+    @CreatedBy INT = NULL,
+    @UploadedAt DATETIME = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF @GalleryAssetID = 0
+    IF @AssetID = 0
     BEGIN
-        INSERT INTO GalleryAsset (GalleryID, OriginalUrl, ThumbnailUrl, Caption, DisplayOrder, RowState)
-        VALUES (@GalleryID, @OriginalUrl, @ThumbnailUrl, @Caption, @DisplayOrder, 'Active');
-        SET @GalleryAssetID = SCOPE_IDENTITY();
+        INSERT INTO GalleryAsset (GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, AssetStatusID, RetouchNotes, CreatedBy, UploadedAt, RowState)
+        VALUES (@GalleryID, @AssetType, @MediaUrl, @ThumbnailUrl, @LinkUrl, @AltText, @Caption, @DurationMinutes, @DisplayOrder, @AssetStatusID, @RetouchNotes, @CreatedBy, ISNULL(@UploadedAt, GETUTCDATE()), 'Active');
+        SET @AssetID = SCOPE_IDENTITY();
     END
     ELSE
     BEGIN
-        UPDATE GalleryAsset SET GalleryID = @GalleryID, OriginalUrl = @OriginalUrl, ThumbnailUrl = @ThumbnailUrl, Caption = @Caption, DisplayOrder = @DisplayOrder, UpdatedAt = GETUTCDATE()
-        WHERE GalleryAssetID = @GalleryAssetID;
+        UPDATE GalleryAsset
+        SET GalleryID = @GalleryID,
+            AssetType = @AssetType,
+            MediaUrl = @MediaUrl,
+            ThumbnailUrl = @ThumbnailUrl,
+            LinkUrl = @LinkUrl,
+            AltText = @AltText,
+            Caption = @Caption,
+            DurationMinutes = @DurationMinutes,
+            DisplayOrder = @DisplayOrder,
+            AssetStatusID = @AssetStatusID,
+            RetouchNotes = @RetouchNotes
+        WHERE AssetID = @AssetID;
     END
-    SELECT @GalleryAssetID AS GalleryAssetID;
+    SELECT @AssetID AS AssetID;
 END;
 
 GO
 
 CREATE PROCEDURE uspGalleryAssetGetById
-    @GalleryAssetID INT
+    @AssetID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT GalleryAssetID, GalleryID, OriginalUrl, ThumbnailUrl, Caption, DisplayOrder, RowState, CreatedAt, UpdatedAt
+    SELECT AssetID, GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, AssetStatusID, RetouchNotes, CreatedBy, UploadedAt, RowState
     FROM GalleryAsset
-    WHERE GalleryAssetID = @GalleryAssetID AND RowState = 'Active';
+    WHERE AssetID = @AssetID AND RowState != 'Deleted';
 END;
 
 GO
@@ -210,118 +305,62 @@ CREATE PROCEDURE uspGalleryAssetGetByGallery
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT GalleryAssetID, GalleryID, OriginalUrl, ThumbnailUrl, Caption, DisplayOrder, RowState, CreatedAt, UpdatedAt
+    SELECT AssetID, GalleryID, AssetType, MediaUrl, ThumbnailUrl, LinkUrl, AltText, Caption, DurationMinutes, DisplayOrder, AssetStatusID, RetouchNotes, CreatedBy, UploadedAt, RowState
     FROM GalleryAsset
-    WHERE GalleryID = @GalleryID AND RowState = 'Active'
-    ORDER BY DisplayOrder;
+    WHERE GalleryID = @GalleryID AND RowState != 'Deleted'
+    ORDER BY DisplayOrder ASC;
 END;
 
 GO
 
 CREATE PROCEDURE uspGalleryAssetReorder
-    @GalleryAssetID INT,
-    @DisplayOrder INT
+    @GalleryID INT,
+    @AssetOrders NVARCHAR(MAX)
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE GalleryAsset SET DisplayOrder = @DisplayOrder, UpdatedAt = GETUTCDATE() WHERE GalleryAssetID = @GalleryAssetID;
+    -- @AssetOrders format: "1,2,3,4" (asset IDs in new order)
+    DECLARE @Index INT = 0;
+    DECLARE @Delimiter NVARCHAR(1) = ',';
+    DECLARE @Xml XML = CAST('<root><id>' + REPLACE(@AssetOrders, @Delimiter, '</id><id>') + '</id></root>' AS XML);
+
+    -- Create temp table with new display order
+    CREATE TABLE #AssetOrder (DisplayOrder INT, AssetID INT);
+    INSERT INTO #AssetOrder (DisplayOrder, AssetID)
+    SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS DisplayOrder,
+           CAST(t.c.value('.', 'INT') AS INT) AS AssetID
+    FROM @Xml.nodes('/root/id') AS t(c);
+
+    -- Update gallery assets with new display order
+    UPDATE GalleryAsset
+    SET DisplayOrder = ao.DisplayOrder
+    FROM GalleryAsset ga
+    INNER JOIN #AssetOrder ao ON ga.AssetID = ao.AssetID
+    WHERE ga.GalleryID = @GalleryID;
+
+    DROP TABLE #AssetOrder;
 END;
 
 GO
 
 CREATE PROCEDURE uspGalleryAssetDelete
-    @GalleryAssetID INT
+    @AssetID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE GalleryAsset SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE GalleryAssetID = @GalleryAssetID;
-END;
-
-GO
-
-CREATE PROCEDURE uspGalleryAccessGrant
-    @GalleryAccessID INT = 0,
-    @GalleryID INT,
-    @UserID INT,
-    @AccessLevel NVARCHAR(50) = 'View'
-AS
-BEGIN
-    SET NOCOUNT ON;
-    IF @GalleryAccessID = 0
-    BEGIN
-        INSERT INTO GalleryAccess (GalleryID, UserID, AccessLevel, RowState)
-        VALUES (@GalleryID, @UserID, @AccessLevel, 'Active');
-        SET @GalleryAccessID = SCOPE_IDENTITY();
-    END
-    ELSE
-    BEGIN
-        UPDATE GalleryAccess SET AccessLevel = @AccessLevel, UpdatedAt = GETUTCDATE() WHERE GalleryAccessID = @GalleryAccessID;
-    END
-    SELECT @GalleryAccessID AS GalleryAccessID;
-END;
-
-GO
-
-CREATE PROCEDURE uspGalleryAccessRevoke
-    @GalleryAccessID INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE GalleryAccess SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE GalleryAccessID = @GalleryAccessID;
-END;
-
-GO
-
-CREATE PROCEDURE uspGalleryAccessGetByGallery
-    @GalleryID INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT GalleryAccessID, GalleryID, UserID, AccessLevel, RowState, CreatedAt, UpdatedAt
-    FROM GalleryAccess
-    WHERE GalleryID = @GalleryID AND RowState = 'Active';
+    UPDATE GalleryAsset SET RowState = 'Deleted' WHERE AssetID = @AssetID;
 END;
 
 GO
 
 CREATE PROCEDURE uspViewAnalyticsIncrement
     @EntityType NVARCHAR(50),
-    @EntityID INT,
-    @UserID INT = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    INSERT INTO ViewAnalytics (EntityType, EntityID, UserID, ViewedAt)
-    VALUES (@EntityType, @EntityID, @UserID, GETUTCDATE());
-END;
-
-GO
-
-CREATE PROCEDURE uspViewAnalyticsGetByEntity
-    @EntityType NVARCHAR(50),
     @EntityID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT ViewAnalyticsID, EntityType, EntityID, UserID, ViewedAt
-    FROM ViewAnalytics
-    WHERE EntityType = @EntityType AND EntityID = @EntityID
-    ORDER BY ViewedAt DESC;
-END;
-
-GO
-
-CREATE PROCEDURE uspViewAnalyticsGetTop
-    @EntityType NVARCHAR(50),
-    @Limit INT = 10
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT TOP (@Limit) EntityID, COUNT(*) AS ViewCount
-    FROM ViewAnalytics
-    WHERE EntityType = @EntityType
-    GROUP BY EntityID
-    ORDER BY ViewCount DESC;
+    -- Placeholder for analytics tracking
+    -- Real implementation would insert into ViewAnalytics table
 END;
 
 GO
@@ -331,40 +370,72 @@ GO
 -- ============================================
 
 CREATE PROCEDURE uspPhotographyPackageUpsert
-    @PhotographyPackageID INT = 0,
+    @PackageID INT = 0,
+    @BranchID INT,
     @PackageName NVARCHAR(255),
-    @Description NVARCHAR(1000) = NULL,
-    @BasePrice DECIMAL(10,2),
-    @DurationHours INT,
+    @PackageDescription NVARCHAR(1000) = NULL,
+    @BasePrice DECIMAL(10, 2),
+    @Currency NVARCHAR(10) = 'INR',
+    @DurationHours INT = NULL,
+    @MaxGalleryImages INT = NULL,
+    @MaxVideoDurationMinutes INT = NULL,
+    @IncludedRawFiles BIT = 0,
+    @IncludedAlbum BIT = 0,
+    @IncludedRetouching BIT = 0,
+    @RetouchingLevel NVARCHAR(50) = NULL,
+    @IncludedSecondPhotographer BIT = 0,
+    @ServiceCategoryID INT = NULL,
+    @IsActive BIT = 1,
     @IsFeatured BIT = 0,
-    @IsActive BIT = 1
+    @DisplayOrder INT = 0,
+    @CreatedBy INT = NULL,
+    @UpdatedBy INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF @PhotographyPackageID = 0
+    IF @PackageID = 0
     BEGIN
-        INSERT INTO PhotographyPackage (PackageName, Description, BasePrice, DurationHours, IsFeatured, IsActive, RowState)
-        VALUES (@PackageName, @Description, @BasePrice, @DurationHours, @IsFeatured, @IsActive, 'Active');
-        SET @PhotographyPackageID = SCOPE_IDENTITY();
+        INSERT INTO PhotographyPackage (BranchID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages, MaxVideoDurationMinutes, IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel, IncludedSecondPhotographer, ServiceCategoryID, IsActive, IsFeatured, DisplayOrder, CreatedBy, CreatedAt, UpdatedAt, RowState)
+        VALUES (@BranchID, @PackageName, @PackageDescription, @BasePrice, @Currency, @DurationHours, @MaxGalleryImages, @MaxVideoDurationMinutes, @IncludedRawFiles, @IncludedAlbum, @IncludedRetouching, @RetouchingLevel, @IncludedSecondPhotographer, @ServiceCategoryID, @IsActive, @IsFeatured, @DisplayOrder, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 'Active');
+        SET @PackageID = SCOPE_IDENTITY();
     END
     ELSE
     BEGIN
-        UPDATE PhotographyPackage SET PackageName = @PackageName, Description = @Description, BasePrice = @BasePrice, DurationHours = @DurationHours, IsFeatured = @IsFeatured, IsActive = @IsActive, UpdatedAt = GETUTCDATE()
-        WHERE PhotographyPackageID = @PhotographyPackageID;
+        UPDATE PhotographyPackage
+        SET BranchID = @BranchID,
+            PackageName = @PackageName,
+            PackageDescription = @PackageDescription,
+            BasePrice = @BasePrice,
+            Currency = @Currency,
+            DurationHours = @DurationHours,
+            MaxGalleryImages = @MaxGalleryImages,
+            MaxVideoDurationMinutes = @MaxVideoDurationMinutes,
+            IncludedRawFiles = @IncludedRawFiles,
+            IncludedAlbum = @IncludedAlbum,
+            IncludedRetouching = @IncludedRetouching,
+            RetouchingLevel = @RetouchingLevel,
+            IncludedSecondPhotographer = @IncludedSecondPhotographer,
+            ServiceCategoryID = @ServiceCategoryID,
+            IsActive = @IsActive,
+            IsFeatured = @IsFeatured,
+            DisplayOrder = @DisplayOrder,
+            UpdatedAt = GETUTCDATE(),
+            UpdatedBy = ISNULL(@UpdatedBy, UpdatedBy)
+        WHERE PackageID = @PackageID;
     END
-    SELECT @PhotographyPackageID AS PhotographyPackageID;
+    SELECT @PackageID AS PackageID;
 END;
 
 GO
 
 CREATE PROCEDURE uspPhotographyPackageGetById
-    @PhotographyPackageID INT
+    @PackageID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PhotographyPackageID, PackageName, Description, BasePrice, DurationHours, IsFeatured, IsActive, RowState, CreatedAt, UpdatedAt
+    SELECT PackageID, BranchID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages, MaxVideoDurationMinutes, IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel, IncludedSecondPhotographer, ServiceCategoryID, IsActive, IsFeatured, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PhotographyPackage
-    WHERE PhotographyPackageID = @PhotographyPackageID AND RowState = 'Active';
+    WHERE PackageID = @PackageID AND RowState != 'Deleted';
 END;
 
 GO
@@ -373,256 +444,297 @@ CREATE PROCEDURE uspPhotographyPackageGet
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PhotographyPackageID, PackageName, Description, BasePrice, DurationHours, IsFeatured, IsActive, RowState, CreatedAt, UpdatedAt
+    SELECT PackageID, BranchID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages, MaxVideoDurationMinutes, IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel, IncludedSecondPhotographer, ServiceCategoryID, IsActive, IsFeatured, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PhotographyPackage
-    WHERE RowState = 'Active'
-    ORDER BY IsFeatured DESC, BasePrice;
+    WHERE RowState != 'Deleted'
+    ORDER BY DisplayOrder ASC, CreatedAt DESC;
 END;
 
 GO
 
 CREATE PROCEDURE uspPhotographyPackageGetPaged
-    @Page INT = 1,
-    @PageSize INT = 10,
-    @Search NVARCHAR(255) = NULL
+    @PageNumber INT,
+    @PageSize INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Offset INT = (@Page - 1) * @PageSize;
-
-    SELECT PhotographyPackageID, PackageName, Description, BasePrice, DurationHours, IsFeatured, IsActive, RowState, CreatedAt, UpdatedAt
+    SELECT PackageID, BranchID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages, MaxVideoDurationMinutes, IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel, IncludedSecondPhotographer, ServiceCategoryID, IsActive, IsFeatured, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PhotographyPackage
-    WHERE RowState = 'Active' AND (ISNULL(@Search, '') = '' OR PackageName LIKE '%' + @Search + '%')
-    ORDER BY IsFeatured DESC, CreatedAt DESC
-    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+    WHERE RowState != 'Deleted'
+    ORDER BY DisplayOrder ASC, CreatedAt DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
 END;
 
 GO
 
 CREATE PROCEDURE uspPhotographyPackageGetFeatured
-    @Limit INT = 3
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP (@Limit) PhotographyPackageID, PackageName, Description, BasePrice, DurationHours, IsFeatured, IsActive, RowState, CreatedAt, UpdatedAt
+    SELECT PackageID, BranchID, PackageName, PackageDescription, BasePrice, Currency, DurationHours, MaxGalleryImages, MaxVideoDurationMinutes, IncludedRawFiles, IncludedAlbum, IncludedRetouching, RetouchingLevel, IncludedSecondPhotographer, ServiceCategoryID, IsActive, IsFeatured, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PhotographyPackage
-    WHERE RowState = 'Active' AND IsActive = 1 AND IsFeatured = 1
-    ORDER BY CreatedAt DESC;
+    WHERE IsFeatured = 1 AND IsActive = 1 AND RowState != 'Deleted'
+    ORDER BY DisplayOrder ASC;
 END;
 
 GO
 
 CREATE PROCEDURE uspPhotographyPackageDelete
-    @PhotographyPackageID INT
+    @PackageID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE PhotographyPackage SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE PhotographyPackageID = @PhotographyPackageID;
+    UPDATE PhotographyPackage SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE PackageID = @PackageID;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageComponentUpsert
-    @PackageComponentID INT = 0,
-    @PhotographyPackageID INT,
+    @ComponentID INT = 0,
+    @PackageID INT,
+    @ComponentType NVARCHAR(50) = NULL,
     @ComponentName NVARCHAR(255),
-    @Description NVARCHAR(500) = NULL,
-    @Quantity INT = 1
+    @ComponentDescription NVARCHAR(1000) = NULL,
+    @Quantity INT = NULL,
+    @Unit NVARCHAR(50) = NULL,
+    @AddedValue DECIMAL(10, 2) = NULL,
+    @IsIncludedByDefault BIT = 0,
+    @DisplayOrder INT = 0,
+    @CreatedBy INT = NULL,
+    @UpdatedBy INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF @PackageComponentID = 0
+    IF @ComponentID = 0
     BEGIN
-        INSERT INTO PackageComponent (PhotographyPackageID, ComponentName, Description, Quantity, RowState)
-        VALUES (@PhotographyPackageID, @ComponentName, @Description, @Quantity, 'Active');
-        SET @PackageComponentID = SCOPE_IDENTITY();
+        INSERT INTO PackageComponent (PackageID, ComponentType, ComponentName, ComponentDescription, Quantity, Unit, AddedValue, IsIncludedByDefault, DisplayOrder, CreatedBy, CreatedAt, UpdatedAt, RowState)
+        VALUES (@PackageID, @ComponentType, @ComponentName, @ComponentDescription, @Quantity, @Unit, @AddedValue, @IsIncludedByDefault, @DisplayOrder, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 'Active');
+        SET @ComponentID = SCOPE_IDENTITY();
     END
     ELSE
     BEGIN
-        UPDATE PackageComponent SET ComponentName = @ComponentName, Description = @Description, Quantity = @Quantity, UpdatedAt = GETUTCDATE()
-        WHERE PackageComponentID = @PackageComponentID;
+        UPDATE PackageComponent
+        SET PackageID = @PackageID,
+            ComponentType = @ComponentType,
+            ComponentName = @ComponentName,
+            ComponentDescription = @ComponentDescription,
+            Quantity = @Quantity,
+            Unit = @Unit,
+            AddedValue = @AddedValue,
+            IsIncludedByDefault = @IsIncludedByDefault,
+            DisplayOrder = @DisplayOrder,
+            UpdatedAt = GETUTCDATE(),
+            UpdatedBy = ISNULL(@UpdatedBy, UpdatedBy)
+        WHERE ComponentID = @ComponentID;
     END
-    SELECT @PackageComponentID AS PackageComponentID;
+    SELECT @ComponentID AS ComponentID;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageComponentGetById
-    @PackageComponentID INT
+    @ComponentID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PackageComponentID, PhotographyPackageID, ComponentName, Description, Quantity, RowState, CreatedAt, UpdatedAt
+    SELECT ComponentID, PackageID, ComponentType, ComponentName, ComponentDescription, Quantity, Unit, AddedValue, IsIncludedByDefault, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PackageComponent
-    WHERE PackageComponentID = @PackageComponentID AND RowState = 'Active';
+    WHERE ComponentID = @ComponentID AND RowState != 'Deleted';
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageComponentGetByPackage
-    @PhotographyPackageID INT
+    @PackageID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PackageComponentID, PhotographyPackageID, ComponentName, Description, Quantity, RowState, CreatedAt, UpdatedAt
+    SELECT ComponentID, PackageID, ComponentType, ComponentName, ComponentDescription, Quantity, Unit, AddedValue, IsIncludedByDefault, DisplayOrder, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PackageComponent
-    WHERE PhotographyPackageID = @PhotographyPackageID AND RowState = 'Active'
-    ORDER BY CreatedAt;
+    WHERE PackageID = @PackageID AND RowState != 'Deleted'
+    ORDER BY DisplayOrder ASC;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageComponentDelete
-    @PackageComponentID INT
+    @ComponentID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE PackageComponent SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE PackageComponentID = @PackageComponentID;
+    UPDATE PackageComponent SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE ComponentID = @ComponentID;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageAddOnUpsert
-    @PackageAddOnID INT = 0,
-    @PhotographyPackageID INT,
+    @AddOnID INT = 0,
+    @PackageID INT,
     @AddOnName NVARCHAR(255),
-    @Description NVARCHAR(500) = NULL,
-    @Price DECIMAL(10,2)
+    @AddOnDescription NVARCHAR(1000) = NULL,
+    @Price DECIMAL(10, 2),
+    @Category NVARCHAR(100) = NULL,
+    @MaxQuantity INT = NULL,
+    @IsFeatured BIT = 0,
+    @DisplayOrder INT = 0,
+    @IsActive BIT = 1,
+    @CreatedBy INT = NULL,
+    @UpdatedBy INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF @PackageAddOnID = 0
+    IF @AddOnID = 0
     BEGIN
-        INSERT INTO PackageAddOn (PhotographyPackageID, AddOnName, Description, Price, RowState)
-        VALUES (@PhotographyPackageID, @AddOnName, @Description, @Price, 'Active');
-        SET @PackageAddOnID = SCOPE_IDENTITY();
+        INSERT INTO PackageAddOn (PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedBy, CreatedAt, UpdatedAt, RowState)
+        VALUES (@PackageID, @AddOnName, @AddOnDescription, @Price, @Category, @MaxQuantity, @IsFeatured, @DisplayOrder, @IsActive, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 'Active');
+        SET @AddOnID = SCOPE_IDENTITY();
     END
     ELSE
     BEGIN
-        UPDATE PackageAddOn SET AddOnName = @AddOnName, Description = @Description, Price = @Price, UpdatedAt = GETUTCDATE()
-        WHERE PackageAddOnID = @PackageAddOnID;
+        UPDATE PackageAddOn
+        SET PackageID = @PackageID,
+            AddOnName = @AddOnName,
+            AddOnDescription = @AddOnDescription,
+            Price = @Price,
+            Category = @Category,
+            MaxQuantity = @MaxQuantity,
+            IsFeatured = @IsFeatured,
+            DisplayOrder = @DisplayOrder,
+            IsActive = @IsActive,
+            UpdatedAt = GETUTCDATE(),
+            UpdatedBy = ISNULL(@UpdatedBy, UpdatedBy)
+        WHERE AddOnID = @AddOnID;
     END
-    SELECT @PackageAddOnID AS PackageAddOnID;
+    SELECT @AddOnID AS AddOnID;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageAddOnGetById
-    @PackageAddOnID INT
+    @AddOnID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PackageAddOnID, PhotographyPackageID, AddOnName, Description, Price, RowState, CreatedAt, UpdatedAt
+    SELECT AddOnID, PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PackageAddOn
-    WHERE PackageAddOnID = @PackageAddOnID AND RowState = 'Active';
+    WHERE AddOnID = @AddOnID AND RowState != 'Deleted';
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageAddOnGetByPackage
-    @PhotographyPackageID INT
+    @PackageID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PackageAddOnID, PhotographyPackageID, AddOnName, Description, Price, RowState, CreatedAt, UpdatedAt
+    SELECT AddOnID, PackageID, AddOnName, AddOnDescription, Price, Category, MaxQuantity, IsFeatured, DisplayOrder, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PackageAddOn
-    WHERE PhotographyPackageID = @PhotographyPackageID AND RowState = 'Active'
-    ORDER BY CreatedAt;
+    WHERE PackageID = @PackageID AND RowState != 'Deleted'
+    ORDER BY DisplayOrder ASC;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageAddOnDelete
-    @PackageAddOnID INT
+    @AddOnID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE PackageAddOn SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE PackageAddOnID = @PackageAddOnID;
+    UPDATE PackageAddOn SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE AddOnID = @AddOnID;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageDiscountUpsert
-    @PackageDiscountID INT = 0,
-    @PhotographyPackageID INT,
-    @DiscountPercentage DECIMAL(5,2),
-    @ValidFrom DATETIME,
-    @ValidTo DATETIME,
-    @Description NVARCHAR(500) = NULL
+    @DiscountID INT = 0,
+    @PackageID INT,
+    @DiscountName NVARCHAR(255),
+    @DiscountType NVARCHAR(50) = NULL,
+    @DiscountValue DECIMAL(10, 2),
+    @ValidFrom DATETIME = NULL,
+    @ValidTo DATETIME = NULL,
+    @IsActive BIT = 1,
+    @CreatedBy INT = NULL,
+    @UpdatedBy INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF @PackageDiscountID = 0
+    IF @DiscountID = 0
     BEGIN
-        INSERT INTO PackageDiscount (PhotographyPackageID, DiscountPercentage, ValidFrom, ValidTo, Description, RowState)
-        VALUES (@PhotographyPackageID, @DiscountPercentage, @ValidFrom, @ValidTo, @Description, 'Active');
-        SET @PackageDiscountID = SCOPE_IDENTITY();
+        INSERT INTO PackageDiscount (PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedBy, CreatedAt, UpdatedAt, RowState)
+        VALUES (@PackageID, @DiscountName, @DiscountType, @DiscountValue, @ValidFrom, @ValidTo, @IsActive, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 'Active');
+        SET @DiscountID = SCOPE_IDENTITY();
     END
     ELSE
     BEGIN
-        UPDATE PackageDiscount SET DiscountPercentage = @DiscountPercentage, ValidFrom = @ValidFrom, ValidTo = @ValidTo, Description = @Description, UpdatedAt = GETUTCDATE()
-        WHERE PackageDiscountID = @PackageDiscountID;
+        UPDATE PackageDiscount
+        SET PackageID = @PackageID,
+            DiscountName = @DiscountName,
+            DiscountType = @DiscountType,
+            DiscountValue = @DiscountValue,
+            ValidFrom = @ValidFrom,
+            ValidTo = @ValidTo,
+            IsActive = @IsActive,
+            UpdatedAt = GETUTCDATE(),
+            UpdatedBy = ISNULL(@UpdatedBy, UpdatedBy)
+        WHERE DiscountID = @DiscountID;
     END
-    SELECT @PackageDiscountID AS PackageDiscountID;
+    SELECT @DiscountID AS DiscountID;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageDiscountGetById
-    @PackageDiscountID INT
+    @DiscountID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PackageDiscountID, PhotographyPackageID, DiscountPercentage, ValidFrom, ValidTo, Description, RowState, CreatedAt, UpdatedAt
+    SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PackageDiscount
-    WHERE PackageDiscountID = @PackageDiscountID AND RowState = 'Active';
+    WHERE DiscountID = @DiscountID AND RowState != 'Deleted';
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageDiscountGetByPackage
-    @PhotographyPackageID INT
+    @PackageID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PackageDiscountID, PhotographyPackageID, DiscountPercentage, ValidFrom, ValidTo, Description, RowState, CreatedAt, UpdatedAt
+    SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PackageDiscount
-    WHERE PhotographyPackageID = @PhotographyPackageID AND RowState = 'Active'
-    ORDER BY ValidFrom DESC;
+    WHERE PackageID = @PackageID AND RowState != 'Deleted'
+    ORDER BY CreatedAt DESC;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageDiscountGetByPackageActive
-    @PhotographyPackageID INT
+    @PackageID INT,
+    @CurrentDate DATETIME = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PackageDiscountID, PhotographyPackageID, DiscountPercentage, ValidFrom, ValidTo, Description, RowState, CreatedAt, UpdatedAt
+    SET @CurrentDate = ISNULL(@CurrentDate, GETUTCDATE());
+    SELECT DiscountID, PackageID, DiscountName, DiscountType, DiscountValue, ValidFrom, ValidTo, IsActive, CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RowState
     FROM PackageDiscount
-    WHERE PhotographyPackageID = @PhotographyPackageID AND RowState = 'Active'
-      AND GETUTCDATE() BETWEEN ValidFrom AND ValidTo
-    ORDER BY ValidFrom DESC;
+    WHERE PackageID = @PackageID
+        AND IsActive = 1
+        AND RowState != 'Deleted'
+        AND (ValidFrom IS NULL OR ValidFrom <= @CurrentDate)
+        AND (ValidTo IS NULL OR ValidTo >= @CurrentDate)
+    ORDER BY DiscountValue DESC;
 END;
 
 GO
 
 CREATE PROCEDURE uspPackageDiscountDelete
-    @PackageDiscountID INT
+    @DiscountID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE PackageDiscount SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE PackageDiscountID = @PackageDiscountID;
-END;
-
-GO
-
--- Health check procedure
-CREATE PROCEDURE uspHealthPing
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT 1 AS Status;
+    UPDATE PackageDiscount SET RowState = 'Deleted', UpdatedAt = GETUTCDATE() WHERE DiscountID = @DiscountID;
 END;
 
 GO
